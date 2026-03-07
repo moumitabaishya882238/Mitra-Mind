@@ -19,7 +19,23 @@ type ChatMessage = {
     sender: 'user' | 'ai';
 };
 
+type EmotionAnalysis = {
+    moodCategory: string;
+    stressScore: number;
+    distress: 'low' | 'moderate' | 'high';
+};
+
 const STORAGE_SESSION_KEY = 'mh-session-id';
+
+function getMoodColor(moodCategory: string) {
+    const mood = moodCategory.toLowerCase();
+    if (mood.includes('calm') || mood.includes('happy')) return '#34D399';
+    if (mood.includes('neutral')) return '#60A5FA';
+    if (mood.includes('stressed')) return '#FACC15';
+    if (mood.includes('anxious')) return '#FB923C';
+    if (mood.includes('depressed') || mood.includes('sad')) return '#F87171';
+    return '#A78BFA';
+}
 
 export default function ChatScreen() {
     const [sessionId, setSessionId] = useState('anonymous-device');
@@ -28,6 +44,7 @@ export default function ChatScreen() {
     ]);
     const [inputText, setInputText] = useState('');
     const [isSending, setIsSending] = useState(false);
+    const [latestAnalysis, setLatestAnalysis] = useState<EmotionAnalysis | null>(null);
     const showConversation = messages.length > 1;
 
     useEffect(() => {
@@ -70,6 +87,14 @@ export default function ChatScreen() {
                 sender: 'ai' as const,
             };
             setMessages((prev) => [...prev, aiMsg]);
+
+            if (response.data?.analysis) {
+                setLatestAnalysis({
+                    moodCategory: response.data.analysis.moodCategory || 'Unknown',
+                    stressScore: Number(response.data.analysis.stressScore || 5),
+                    distress: response.data.analysis.distress || 'low',
+                });
+            }
         } catch (error) {
             console.error('Failed to get AI response', error);
             const errorMsg = {
@@ -195,6 +220,15 @@ export default function ChatScreen() {
                 ) : (
                     <Text style={styles.helperText}>Type your thoughts below and press send.</Text>
                 )}
+
+                {latestAnalysis ? (
+                    <View style={styles.analysisCard}>
+                        <View style={[styles.analysisDot, { backgroundColor: getMoodColor(latestAnalysis.moodCategory) }]} />
+                        <Text style={styles.analysisText}>Mood: {latestAnalysis.moodCategory}</Text>
+                        <Text style={styles.analysisText}>Stress: {latestAnalysis.stressScore}/10</Text>
+                        <Text style={styles.analysisText}>Distress: {latestAnalysis.distress}</Text>
+                    </View>
+                ) : null}
 
                 <View style={styles.bottomDock}>
                     <View style={styles.inputContainer}>
@@ -459,6 +493,28 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         color: 'rgba(214, 223, 245, 0.58)',
         fontSize: 12,
+    },
+    analysisCard: {
+        marginBottom: 10,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: 'rgba(194, 208, 255, 0.22)',
+        backgroundColor: 'rgba(12, 18, 46, 0.56)',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    analysisDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+    },
+    analysisText: {
+        color: 'rgba(232, 240, 255, 0.90)',
+        fontSize: 11,
+        fontWeight: '600',
     },
     bottomDock: {
         marginTop: 'auto',

@@ -45,6 +45,16 @@ type InsightResponse = {
 
 const STORAGE_SESSION_KEY = 'mh-session-id';
 
+function getMoodColor(moodCategory: string) {
+    const mood = moodCategory.toLowerCase();
+    if (mood.includes('calm') || mood.includes('happy')) return '#34D399';       // Green
+    if (mood.includes('neutral')) return '#60A5FA';                             // Blue
+    if (mood.includes('stressed')) return '#FACC15';                            // Yellow
+    if (mood.includes('anxious')) return '#FB923C';                             // Orange
+    if (mood.includes('depressed') || mood.includes('sad')) return '#F87171';   // Red
+    return '#A78BFA';
+}
+
 const defaultInsights: InsightResponse = {
     latest: {
         moodCategory: 'Neutral',
@@ -104,7 +114,13 @@ export default function DashboardScreen() {
     const energyPercent = Math.max(10, Math.min(100, (10 - insights.latest.stressScore) * 10));
 
     const trendBars = (insights.trend.length ? insights.trend : [
-        { score: 5 }, { score: 6 }, { score: 4 }, { score: 7 }, { score: 5 }, { score: 6 }, { score: 5 },
+        { score: 5, moodCategory: 'Neutral' }, 
+        { score: 6, moodCategory: 'Stressed' }, 
+        { score: 4, moodCategory: 'Calm' }, 
+        { score: 7, moodCategory: 'Anxious' }, 
+        { score: 5, moodCategory: 'Neutral' }, 
+        { score: 6, moodCategory: 'Stressed' }, 
+        { score: 5, moodCategory: 'Neutral' },
     ]).slice(-7);
 
     return (
@@ -138,6 +154,23 @@ export default function DashboardScreen() {
                         <Text style={styles.greetingText}>{loading ? 'Syncing...' : 'Insights'}</Text>
                     </View>
 
+                    <View style={styles.emotionalStatusBar}>
+                        <View style={styles.statusDotContainer}>
+                            <View style={[styles.statusDot, { backgroundColor: getMoodColor(insights.latest.moodCategory) }]} />
+                            <Text style={styles.statusDotLabel}>{insights.latest.moodCategory}</Text>
+                        </View>
+                        <View style={styles.statusDivider} />
+                        <View style={styles.statusMetric}>
+                            <Text style={styles.statusMetricLabel}>Stress</Text>
+                            <Text style={styles.statusMetricValue}>{insights.latest.stressScore}/10</Text>
+                        </View>
+                        <View style={styles.statusDivider} />
+                        <View style={styles.statusMetric}>
+                            <Text style={styles.statusMetricLabel}>Trending</Text>
+                            <Text style={styles.statusMetricValue}>{insights.trend.length > 0 ? '↓' : '→'}</Text>
+                        </View>
+                    </View>
+
                     <Text style={styles.mainQuestion}>What can I help you with today?</Text>
 
                     <Pressable
@@ -162,7 +195,10 @@ export default function DashboardScreen() {
                         </View>
                         <View style={styles.moodVisualization}>
                             <View style={styles.moodIndicator}>
-                                <Text style={styles.moodEmoji}>{insights.latest.emoji}</Text>
+                                <View style={styles.moodRow}>
+                                    <View style={[styles.moodColorDot, { backgroundColor: getMoodColor(insights.latest.moodCategory) }]} />
+                                    <Text style={styles.moodEmoji}>{insights.latest.emoji}</Text>
+                                </View>
                                 <Text style={styles.moodLabel}>{insights.latest.moodCategory}</Text>
                             </View>
                             <View style={styles.moodStats}>
@@ -193,12 +229,17 @@ export default function DashboardScreen() {
                             <View style={styles.barChart}>
                                 {trendBars.map((entry, idx) => {
                                     const heightPercent = Math.max(20, Math.min(95, (entry.score / 10) * 100));
-                                    return <View key={`${idx}-${heightPercent}`} style={[styles.bar, { height: `${heightPercent}%` }]} />;
+                                    const barColor = entry.moodCategory ? getMoodColor(entry.moodCategory) : 'rgba(95, 129, 255, 0.6)';
+                                    return (
+                                        <View key={`${idx}-${heightPercent}`} style={[styles.bar, { height: `${heightPercent}%`, backgroundColor: barColor + '99' }]} />
+                                    );
                                 })}
                             </View>
-                            <Text style={styles.graphNote}>
-                                Avg stress: {insights.summary.averageStress}/10 from {insights.summary.entryCount} entries
-                            </Text>
+                            <View style={styles.trendLegend}>
+                                <Text style={styles.graphNote}>
+                                    Avg stress: {insights.summary.averageStress}/10 from {insights.summary.entryCount} entries
+                                </Text>
+                            </View>
                         </View>
                     </View>
 
@@ -298,7 +339,59 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        marginBottom: 12,
+    },
+    emotionalStatusBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(143, 117, 255, 0.15)',
+        borderWidth: 1,
+        borderColor: 'rgba(223, 214, 255, 0.2)',
+        borderRadius: 12,
+        paddingVertical: 10,
+        paddingHorizontal: 14,
         marginBottom: 18,
+        gap: 10,
+    },
+    statusDotContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        flex: 1,
+    },
+    statusDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.25,
+        shadowRadius: 2,
+        elevation: 2,
+    },
+    statusDotLabel: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: 'rgba(238, 243, 255, 0.85)',
+    },
+    statusMetric: {
+        flex: 1,
+        alignItems: 'center',
+    },
+    statusMetricLabel: {
+        fontSize: 10,
+        color: 'rgba(226, 233, 255, 0.65)',
+        marginBottom: 2,
+    },
+    statusMetricValue: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: 'rgba(238, 243, 255, 0.9)',
+    },
+    statusDivider: {
+        width: 1,
+        height: 24,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
     },
     avatarSection: {
         flexDirection: 'row',
@@ -413,6 +506,21 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 6,
     },
+    moodRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    moodColorDot: {
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 3,
+        elevation: 3,
+    },
     moodEmoji: {
         fontSize: 36,
     },
@@ -483,6 +591,12 @@ const styles = StyleSheet.create({
         borderRadius: 4,
         borderTopLeftRadius: 6,
         borderTopRightRadius: 6,
+    },
+    trendLegend: {
+        width: '100%',
+        paddingTop: 8,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(255, 255, 255, 0.08)',
     },
     graphNote: {
         fontSize: 12,
