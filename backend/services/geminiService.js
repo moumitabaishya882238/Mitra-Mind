@@ -18,9 +18,16 @@ Guidelines:
 
 You will be given the student's recent emotion context (if any) and their current message.
 Respond directly to their message as Mitra.
+If behavioral patterns are provided, gently reference them in a supportive way without sounding repetitive or creepy.
 `;
 
-async function generateCompanionResponse(userMessage, emotionContext = {}, language = 'en', conversationHistory = []) {
+async function generateCompanionResponse(
+    userMessage,
+    emotionContext = {},
+    language = 'en',
+    conversationHistory = [],
+    behaviorPatterns = null
+) {
     try {
         const model = genAI.getGenerativeModel({
             model: 'gemini-2.5-flash',
@@ -37,7 +44,11 @@ async function generateCompanionResponse(userMessage, emotionContext = {}, langu
                 .join('\n')}\n\n`
             : '';
 
-        const finalPrompt = `${contextStr}${historyStr}User (${language}): ${userMessage}`;
+        const patternStr = behaviorPatterns
+            ? `Behavioral patterns summary: ${JSON.stringify(behaviorPatterns, null, 2)}\n\n`
+            : '';
+
+        const finalPrompt = `${contextStr}${patternStr}${historyStr}User (${language}): ${userMessage}`;
 
         const result = await model.generateContent(finalPrompt);
         const response = await result.response;
