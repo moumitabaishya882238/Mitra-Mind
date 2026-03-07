@@ -5,7 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 // Import screens
 import ChatScreen from '../screens/ChatScreen';
 import DashboardScreen from '../screens/DashboardScreen';
-import MoodTrackerScreen from '../screens/MoodTrackerScreen';
+import WelcomeScreen from '../screens/WelcomeScreen';
 import CopingToolkitScreen from '../screens/CopingToolkitScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 
@@ -28,8 +28,8 @@ const MainTabNavigator = () => {
 const AppNavigator = () => {
     return (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
-            {/* Starting with MoodTracker allows a quick check-in before the dashboard */}
-            <Stack.Screen name="MoodTracker" component={MoodTrackerScreen} />
+            {/* Start with a warm welcome screen - no form, just friendly greeting */}
+            <Stack.Screen name="Welcome" component={WelcomeScreen} />
             <Stack.Screen name="MainTabs" component={MainTabNavigator} />
         </Stack.Navigator>
     );
