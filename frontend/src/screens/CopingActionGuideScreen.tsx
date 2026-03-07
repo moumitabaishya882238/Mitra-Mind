@@ -18,6 +18,7 @@ import Video from 'react-native-video';
 import apiClient from '../api/client';
 import { copingActions } from '../data/copingActions';
 import { useVoiceInput, useVoiceOutput } from '../hooks/useVoice';
+import { enqueueOfflineSessionMood } from '../offline/offlineEngine';
 
 type RouteParams = {
     actionId?: string;
@@ -696,11 +697,11 @@ export default function CopingActionGuideScreen() {
             const storedSession = await AsyncStorage.getItem(STORAGE_SESSION_KEY);
             const sessionId = storedSession || 'anonymous-device';
             const mapped = mapCompletionChoice(choice, mode || undefined);
-                        const summary = mode === 'grounding'
-                                ? `MindSpace Grounding completion: ${choice}`
-                                : mode === 'color-hunt'
-                                    ? `MindSpace Color Hunt completion: ${choice}`
-                                    : `MindSpace PMR completion: ${choice}`;
+            const summary = mode === 'grounding'
+                ? `MindSpace Grounding completion: ${choice}`
+                : mode === 'color-hunt'
+                    ? `MindSpace Color Hunt completion: ${choice}`
+                    : `MindSpace PMR completion: ${choice}`;
 
             await apiClient.post('/ai/log-session-mood', {
                 sessionId,
@@ -713,7 +714,23 @@ export default function CopingActionGuideScreen() {
             setSaveMessage('Saved to your mood log.');
         } catch (error) {
             console.error('Failed to save completion', error);
-            setSaveMessage('Could not save right now.');
+            const storedSession = await AsyncStorage.getItem(STORAGE_SESSION_KEY);
+            const sessionId = storedSession || 'anonymous-device';
+            const mapped = mapCompletionChoice(choice, mode || undefined);
+            const summary = mode === 'grounding'
+                ? `MindSpace Grounding completion: ${choice}`
+                : mode === 'color-hunt'
+                    ? `MindSpace Color Hunt completion: ${choice}`
+                    : `MindSpace PMR completion: ${choice}`;
+
+            await enqueueOfflineSessionMood({
+                sessionId,
+                moodCategory: mapped.moodCategory,
+                stressScore: mapped.stressScore,
+                crisisDetected: false,
+                conversationSummary: summary,
+            });
+            setSaveMessage('Saved offline. Will sync when online.');
         } finally {
             setIsSavingResult(false);
         }

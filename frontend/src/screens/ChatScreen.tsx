@@ -17,6 +17,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import apiClient from '../api/client';
 import { useCrisis } from '../context/CrisisContext';
 import { useVoiceInput, useVoiceOutput } from '../hooks/useVoice';
+import { buildOfflineChatResponse, enqueueOfflineChat, getOfflineQueueCount } from '../offline/offlineEngine';
 
 type ChatMessage = {
     id: string;
@@ -65,6 +66,7 @@ export default function ChatScreen() {
     const [latestAnalysis, setLatestAnalysis] = useState<EmotionAnalysis | null>(null);
     const [crisisData, setCrisisData] = useState<CrisisData>({ detected: false, helplines: [] });
     const [enableTts, setEnableTts] = useState(true);
+    const [pendingOfflineCount, setPendingOfflineCount] = useState(0);
     const showConversation = messages.length > 1;
 
     // Voice input/output hooks
@@ -282,6 +284,9 @@ export default function ChatScreen() {
                     await AsyncStorage.setItem(STORAGE_SESSION_KEY, generatedSession);
                     setSessionId(generatedSession);
                 }
+
+                const queueCount = await getOfflineQueueCount();
+                setPendingOfflineCount(queueCount);
             } catch (error) {
                 console.warn('Session init failed', error);
             }
@@ -358,14 +363,37 @@ export default function ChatScreen() {
                 };
                 setMessages((prev) => [...prev, crisisMsg]);
             }
+
+            const queueCount = await getOfflineQueueCount();
+            setPendingOfflineCount(queueCount);
         } catch (error) {
             console.error('Failed to get AI response', error);
+
+            await enqueueOfflineChat({
+                message: userMsg.text,
+                language: 'en',
+                sessionId,
+            });
+
+            const offline = await buildOfflineChatResponse(userMsg.text, sessionId);
             const errorMsg = {
                 id: (Date.now() + 1).toString(),
-                text: "Sorry, I'm having trouble connecting right now.",
+                text: offline.reply,
                 sender: 'ai' as const,
             };
             setMessages((prev) => [...prev, errorMsg]);
+
+            setLatestAnalysis({
+                moodCategory: offline.analysis.moodCategory || 'Unknown',
+                stressScore: Number(offline.analysis.stressScore || 5),
+                distress:
+                    offline.analysis.distress === 'high' || offline.analysis.distress === 'moderate'
+                        ? offline.analysis.distress
+                        : 'low',
+            });
+
+            const queueCount = await getOfflineQueueCount();
+            setPendingOfflineCount(queueCount);
         } finally {
             setIsSending(false);
         }
@@ -526,6 +554,13 @@ export default function ChatScreen() {
 
                 {showConversation ? (
                     <View style={styles.messageListContainer}>
+                        {pendingOfflineCount > 0 ? (
+                            <View style={styles.offlineQueuePill}>
+                                <Text style={styles.offlineQueuePillText}>
+                                    Offline saved messages: {pendingOfflineCount}
+                                </Text>
+                            </View>
+                        ) : null}
                         <FlatList
                             data={messages}
                             keyExtractor={(item) => item.id}
@@ -1003,6 +1038,21 @@ const styles = StyleSheet.create({
         flex: 1,
         marginTop: 18,
         marginBottom: 10,
+    },
+    offlineQueuePill: {
+        alignSelf: 'flex-start',
+        marginBottom: 8,
+        backgroundColor: 'rgba(120, 176, 255, 0.2)',
+        borderWidth: 1,
+        borderColor: 'rgba(170, 205, 255, 0.55)',
+        borderRadius: 14,
+        paddingVertical: 5,
+        paddingHorizontal: 10,
+    },
+    offlineQueuePillText: {
+        color: 'rgba(230, 242, 255, 0.95)',
+        fontSize: 11,
+        fontWeight: '700',
     },
     messageListContent: {
         paddingBottom: 12,

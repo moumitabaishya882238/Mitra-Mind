@@ -15,6 +15,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import apiClient from '../api/client';
 import { useCrisis } from '../context/CrisisContext';
 import { copingActions, MoodCategory } from '../data/copingActions';
+import { cacheDashboardInsights, getCachedDashboardInsights, getOfflineQueueCount } from '../offline/offlineEngine';
 
 type InsightResponse = {
     latest: {
@@ -104,6 +105,7 @@ export default function DashboardScreen() {
     const { clearCrisisAlert } = useCrisis();
     const [insights, setInsights] = useState<InsightResponse>(defaultInsights);
     const [loading, setLoading] = useState(false);
+    const [pendingSyncCount, setPendingSyncCount] = useState(0);
 
     const loadInsights = useCallback(async () => {
         setLoading(true);
@@ -114,9 +116,18 @@ export default function DashboardScreen() {
                 params: { sessionId },
             });
             setInsights({ ...defaultInsights, ...response.data });
+            await cacheDashboardInsights(sessionId, { ...defaultInsights, ...response.data });
         } catch (error) {
             console.error('Failed to load dashboard insights', error);
+            const storedSession = await AsyncStorage.getItem(STORAGE_SESSION_KEY);
+            const sessionId = storedSession || 'anonymous-device';
+            const cached = await getCachedDashboardInsights(sessionId);
+            if (cached) {
+                setInsights({ ...defaultInsights, ...cached });
+            }
         } finally {
+            const pendingCount = await getOfflineQueueCount();
+            setPendingSyncCount(pendingCount);
             setLoading(false);
         }
     }, []);
@@ -193,6 +204,12 @@ export default function DashboardScreen() {
                         </View>
                         <Text style={styles.greetingText}>{loading ? 'Syncing...' : 'Insights'}</Text>
                     </View>
+
+                    {pendingSyncCount > 0 ? (
+                        <View style={styles.syncPendingPill}>
+                            <Text style={styles.syncPendingText}>Offline saved items: {pendingSyncCount}</Text>
+                        </View>
+                    ) : null}
 
                     <View style={styles.emotionalStatusBar}>
                         <View style={styles.statusDotContainer}>
@@ -538,6 +555,22 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         color: 'rgba(238, 243, 255, 0.94)',
+    },
+    syncPendingPill: {
+        alignSelf: 'flex-start',
+        marginTop: 8,
+        marginBottom: 12,
+        backgroundColor: 'rgba(120, 176, 255, 0.2)',
+        borderColor: 'rgba(170, 205, 255, 0.55)',
+        borderWidth: 1,
+        borderRadius: 14,
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+    },
+    syncPendingText: {
+        color: 'rgba(230, 242, 255, 0.95)',
+        fontSize: 11,
+        fontWeight: '700',
     },
     mainQuestion: {
         fontSize: 24,
