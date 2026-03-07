@@ -30,9 +30,17 @@ allprojects {
 subprojects {
     configurations.all {
         resolutionStrategy {
-            force "androidx.core:core-ktx:1.12.0"
-            force "androidx.core:core:1.12.0"
+            force "androidx.core:core-ktx:1.13.1"
+            force "androidx.core:core:1.13.1"
+            force "androidx.activity:activity:1.9.0"
+            force "androidx.activity:activity-ktx:1.9.0"
         }
+    }
+    
+    // Fix old support library dependencies
+    configurations.all {
+        all*.exclude group: 'com.android.support', module: 'support-v4'
+        all*.exclude group: 'com.android.support', module: 'appcompat-v7'
     }
 }
 
