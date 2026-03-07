@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Button, StyleSheet, ScrollView } from 'react-native';
-// import Video from 'react-native-video';
+import Video from 'react-native-video';
 
 export default function WelcomeScreen({ navigation }: any) {
     const handleStartChat = () => {
@@ -9,43 +9,37 @@ export default function WelcomeScreen({ navigation }: any) {
 
     return (
         <View style={styles.fullContainer}>
-            {/* 🎬 VIDEO BACKGROUND - Temporarily disabled */}
-            {/* <Video
-                source={require('../assets/welcome-video.mp4')}
+            {/* Video background - place your video as welcome-video.mp4 in /frontend/assets/ */}
+            <Video
+                source={require('../../assets/welcome-video.mp4')}
                 style={styles.videoBackground}
                 resizeMode="cover"
-                repeat
-                muted
-                controls={false}
-            /> */}
+                repeat={true}
+                muted={true}
+                paused={false}
+            />
             
-            {/* Background color fallback */}
-            <View style={styles.backgroundFallback} />
-            
-            {/* 🌫️ OVERLAY FOR BETTER TEXT READABILITY */}
+            {/* Overlay for better text readability */}
             <View style={styles.overlay} />
             
             <ScrollView contentContainerStyle={styles.container}>
                 <View style={styles.content}>
-                    <Text style={styles.greeting}>Welcome, Friend! 👋</Text>
+                    <Text style={styles.greeting}>
+                        <Text style={styles.gradientStart}>Welcome</Text>{' '}
+                        <Text style={styles.gradientMid}>to</Text>{' '}
+                        <Text style={styles.gradientEnd}>Mitra</Text>
+                    </Text>
                     
                     <Text style={styles.message}>
-                        Are you feeling anxious? Stressed? Bad? Overwhelmed? Or maybe just need someone to listen?
+                        A private space to check in, reflect, and get calm, practical support.
                     </Text>
 
                     <Text style={styles.subMessage}>
-                        You're in the right place. I'm <Text style={styles.bold}>Mitra</Text>, your AI companion. I'm here to listen, without judgment, and help you feel better.
+                        Mitra is your AI companion for emotional well-being. Share how you feel and receive supportive guidance, anytime.
                     </Text>
 
-                    <View style={styles.features}>
-                        <Text style={styles.featureItem}>✨ Share what's on your mind</Text>
-                        <Text style={styles.featureItem}>💭 Get empathetic support</Text>
-                        <Text style={styles.featureItem}>🛡️ Your conversations are anonymous</Text>
-                        <Text style={styles.featureItem}>🌱 Learn coping strategies</Text>
-                    </View>
-
                     <Text style={styles.finalMessage}>
-                        Let's talk. Tell me how you're really feeling today.
+                        Begin when you are ready.
                     </Text>
 
                     <Button 
@@ -87,7 +81,7 @@ const styles = StyleSheet.create({
         left: 0,
         bottom: 0,
         right: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+        backgroundColor: 'rgba(0,0,0,0.55)',
         zIndex: 0,
     },
     container: {
@@ -101,21 +95,29 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     greeting: {
-        fontSize: 32,
+        fontSize: 34,
         fontWeight: 'bold',
-        color: '#FFF',
-        marginBottom: 20,
+        marginBottom: 14,
         textAlign: 'center',
         textShadowColor: 'rgba(0, 0, 0, 0.75)',
         textShadowOffset: { width: 1, height: 1 },
         textShadowRadius: 2,
     },
+    gradientStart: {
+        color: '#D8EEFF',
+    },
+    gradientMid: {
+        color: '#9FC9FF',
+    },
+    gradientEnd: {
+        color: '#5B9BD5',
+    },
     message: {
-        fontSize: 18,
+        fontSize: 17,
         color: '#FFF',
         textAlign: 'center',
-        marginBottom: 20,
-        lineHeight: 26,
+        marginBottom: 14,
+        lineHeight: 24,
         fontWeight: '500',
         textShadowColor: 'rgba(0, 0, 0, 0.75)',
         textShadowOffset: { width: 1, height: 1 },
@@ -125,8 +127,8 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#F0F0F0',
         textAlign: 'center',
-        marginBottom: 30,
-        lineHeight: 24,
+        marginBottom: 22,
+        lineHeight: 23,
         textShadowColor: 'rgba(0, 0, 0, 0.75)',
         textShadowOffset: { width: 1, height: 1 },
         textShadowRadius: 2,
@@ -135,25 +137,11 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: '#5B9BD5',
     },
-    features: {
-        marginVertical: 25,
-        width: '100%',
-        paddingHorizontal: 10,
-    },
-    featureItem: {
-        fontSize: 15,
-        color: '#FFF',
-        marginVertical: 8,
-        lineHeight: 22,
-        textShadowColor: 'rgba(0, 0, 0, 0.75)',
-        textShadowOffset: { width: 1, height: 1 },
-        textShadowRadius: 2,
-    },
     finalMessage: {
         fontSize: 16,
         color: '#FFF',
         textAlign: 'center',
-        marginBottom: 30,
+        marginBottom: 24,
         fontWeight: '600',
         lineHeight: 24,
         textShadowColor: 'rgba(0, 0, 0, 0.75)',
