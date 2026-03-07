@@ -13,6 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import apiClient from '../api/client';
+import { useCrisis } from '../context/CrisisContext';
 
 type InsightResponse = {
     latest: {
@@ -85,6 +86,7 @@ function relativeTime(value: string) {
 
 export default function DashboardScreen() {
     const navigation = useNavigation<any>();
+    const { clearCrisisAlert } = useCrisis();
     const [insights, setInsights] = useState<InsightResponse>(defaultInsights);
     const [loading, setLoading] = useState(false);
 
@@ -107,7 +109,8 @@ export default function DashboardScreen() {
     useFocusEffect(
         useCallback(() => {
             loadInsights();
-        }, [loadInsights])
+            clearCrisisAlert(); // Clear blinking alert when user views Dashboard
+        }, [loadInsights, clearCrisisAlert])
     );
 
     const stressPercent = Math.max(10, Math.min(100, insights.latest.stressScore * 10));
@@ -171,20 +174,71 @@ export default function DashboardScreen() {
                         </View>
                     </View>
 
-                    <Text style={styles.mainQuestion}>What can I help you with today?</Text>
-
-                    <Pressable
-                        style={styles.startConversationButton}
-                        onPress={() => navigation.navigate('MitraChat')}
-                    >
-                        <View style={styles.buttonContent}>
-                            <Text style={styles.buttonIcon}>Chat</Text>
-                            <View style={styles.buttonTextWrapper}>
-                                <Text style={styles.buttonLabel}>Start Conversation</Text>
-                                <Text style={styles.buttonHint}>Share your thoughts and feelings</Text>
+                    {insights.latest.crisisDetected ? (
+                        <View style={[styles.analyticsCard, styles.crisisCard, styles.topCrisisCard]}>
+                            <View style={styles.crisisHeader}>
+                                <Text style={styles.crisisAlertIcon}>🚨</Text>
+                                <View style={styles.crisisHeaderContent}>
+                                    <Text style={styles.crisisTitle}>⚠️ URGENT SUPPORT NEEDED</Text>
+                                    <Text style={styles.crisisSubtitle}>
+                                        Crisis language detected. Immediate help available 24/7.
+                                    </Text>
+                                </View>
                             </View>
+                            <View style={styles.helplinesList}>
+                                {insights.helplines.map((line) => {
+                                    // Extract first number before "/" or "or" separator
+                                    const primaryPhone = line.phone.split(/\/|or/i)[0].trim();
+                                    const phoneNumber = primaryPhone.replace(/[^0-9+]/g, '');
+                                    return (
+                                        <View key={line.name} style={styles.crisisHelplineItem}>
+                                            <View style={styles.helplineIconContainer}>
+                                                <Text style={styles.helplineIconText}>📞</Text>
+                                            </View>
+                                            <View style={styles.helplineInfo}>
+                                                <Text style={styles.helplineName}>{line.name}</Text>
+                                                <Text style={styles.helplinePhone}>{line.phone}</Text>
+                                            </View>
+                                            <View style={styles.helplineActions}>
+                                                <Pressable
+                                                    style={styles.callButton}
+                                                    onPress={() => Linking.openURL(`tel:${phoneNumber}`).catch(() => {})}
+                                                >
+                                                    <Text style={styles.callButtonText}>📱 Call</Text>
+                                                </Pressable>
+                                                <Pressable
+                                                    style={styles.websiteButton}
+                                                    onPress={() => Linking.openURL(line.site).catch(() => {})}
+                                                >
+                                                    <Text style={styles.websiteButtonText}>→</Text>
+                                                </Pressable>
+                                            </View>
+                                        </View>
+                                    );
+                                })}
+                            </View>
+                            <Text style={styles.crisisFooter}>
+                                You are not alone. Tap any resource above to get immediate help.
+                            </Text>
                         </View>
-                    </Pressable>
+                    ) : (
+                        <>
+                            <Text style={styles.mainQuestion}>What can I help you with today?</Text>
+
+                            <Pressable
+                                style={styles.startConversationButton}
+                                onPress={() => navigation.navigate('MitraChat')}
+                            >
+                                <View style={styles.buttonContent}>
+                                    <Text style={styles.buttonIcon}>Chat</Text>
+                                    <View style={styles.buttonTextWrapper}>
+                                        <Text style={styles.buttonLabel}>Start Conversation</Text>
+                                        <Text style={styles.buttonHint}>Share your thoughts and feelings</Text>
+                                    </View>
+                                </View>
+                            </Pressable>
+                        </>
+                    )}
 
                     <Text style={styles.sectionTitle}>Your Insights</Text>
 
@@ -245,26 +299,6 @@ export default function DashboardScreen() {
 
                     <View style={styles.analyticsCard}>
                         <View style={styles.cardHeader}>
-                            <Text style={styles.cardTitle}>Interaction History</Text>
-                            <Text style={styles.cardDate}>Recent</Text>
-                        </View>
-                        <View style={styles.activityList}>
-                            {(insights.recentInteractions.length ? insights.recentInteractions : [
-                                { text: 'Start chatting to build your history', createdAt: new Date().toISOString() },
-                            ]).map((item, idx) => (
-                                <View style={styles.activityItem} key={`${item.createdAt}-${idx}`}>
-                                    <Text style={styles.activityIcon}>Note</Text>
-                                    <View style={styles.activityInfo}>
-                                        <Text style={styles.activityTitle}>{item.text}</Text>
-                                        <Text style={styles.activityTime}>{relativeTime(item.createdAt)}</Text>
-                                    </View>
-                                </View>
-                            ))}
-                        </View>
-                    </View>
-
-                    <View style={styles.analyticsCard}>
-                        <View style={styles.cardHeader}>
                             <Text style={styles.cardTitle}>Personalized coping strategies</Text>
                             <Text style={styles.cardDate}>Live</Text>
                         </View>
@@ -282,28 +316,25 @@ export default function DashboardScreen() {
                         </View>
                     </View>
 
-                    {insights.latest.crisisDetected ? (
-                        <View style={[styles.analyticsCard, styles.crisisCard]}>
-                            <View style={styles.cardHeader}>
-                                <Text style={styles.cardTitle}>Urgent support resources</Text>
-                                <Text style={styles.cardDate}>Important</Text>
-                            </View>
-                            <Text style={styles.crisisText}>
-                                Potential crisis language detected. Please contact immediate help resources below.
-                            </Text>
-                            <View style={styles.activityList}>
-                                {insights.helplines.map((line) => (
-                                    <Pressable key={line.name} style={styles.activityItem} onPress={() => Linking.openURL(line.site)}>
-                                        <Text style={styles.activityIcon}>SOS</Text>
-                                        <View style={styles.activityInfo}>
-                                            <Text style={styles.activityTitle}>{line.name}</Text>
-                                            <Text style={styles.activityTime}>{line.phone}</Text>
-                                        </View>
-                                    </Pressable>
-                                ))}
-                            </View>
+                    <View style={styles.analyticsCard}>
+                        <View style={styles.cardHeader}>
+                            <Text style={styles.cardTitle}>Interaction History</Text>
+                            <Text style={styles.cardDate}>Recent</Text>
                         </View>
-                    ) : null}
+                        <View style={styles.activityList}>
+                            {(insights.recentInteractions.length ? insights.recentInteractions : [
+                                { text: 'Start chatting to build your history', createdAt: new Date().toISOString() },
+                            ]).map((item, idx) => (
+                                <View style={styles.activityItem} key={`${item.createdAt}-${idx}`}>
+                                    <Text style={styles.activityIcon}>Note</Text>
+                                    <View style={styles.activityInfo}>
+                                        <Text style={styles.activityTitle}>{item.text}</Text>
+                                        <Text style={styles.activityTime}>{relativeTime(item.createdAt)}</Text>
+                                    </View>
+                                </View>
+                            ))}
+                        </View>
+                    </View>
 
                     <View style={styles.bottomSpacer} />
                 </ScrollView>
@@ -477,6 +508,130 @@ const styles = StyleSheet.create({
     crisisCard: {
         backgroundColor: 'rgba(183, 72, 72, 0.24)',
         borderColor: 'rgba(235, 128, 128, 0.48)',
+    },
+    topCrisisCard: {
+        borderWidth: 2,
+        borderColor: 'rgba(255, 100, 100, 0.7)',
+        backgroundColor: 'rgba(200, 50, 50, 0.25)',
+        shadowColor: '#EF4444',
+        shadowOpacity: 0.4,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 6 },
+        elevation: 8,
+        marginBottom: 22,
+    },
+    crisisHeader: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 12,
+        marginBottom: 14,
+    },
+    crisisAlertIcon: {
+        fontSize: 28,
+        marginTop: 2,
+    },
+    crisisHeaderContent: {
+        flex: 1,
+    },
+    crisisTitle: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: '#FF6B6B',
+        marginBottom: 4,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    crisisSubtitle: {
+        fontSize: 13,
+        color: 'rgba(255, 200, 200, 0.9)',
+        lineHeight: 18,
+        fontWeight: '500',
+    },
+    helplinesList: {
+        gap: 10,
+        marginBottom: 12,
+    },
+    crisisHelplineItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.12)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 150, 150, 0.4)',
+        borderRadius: 12,
+        paddingVertical: 12,
+        paddingHorizontal: 14,
+        gap: 12,
+    },
+    helplineIconContainer: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: 'rgba(255, 100, 100, 0.25)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    helplineIconText: {
+        fontSize: 18,
+    },
+    helplineInfo: {
+        flex: 1,
+    },
+    helplineName: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#FFFFFF',
+        marginBottom: 3,
+    },
+    helplinePhone: {
+        fontSize: 12,
+        color: 'rgba(255, 200, 200, 0.85)',
+        fontWeight: '600',
+    },
+    helplineActions: {
+        flexDirection: 'row',
+        gap: 8,
+        alignItems: 'center',
+    },
+    callButton: {
+        backgroundColor: 'rgba(255, 100, 100, 0.35)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 150, 150, 0.5)',
+        borderRadius: 20,
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        shadowColor: '#FF6B6B',
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 2 },
+        elevation: 3,
+    },
+    callButtonText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#FFFFFF',
+    },
+    websiteButton: {
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 150, 150, 0.4)',
+        borderRadius: 20,
+        width: 32,
+        height: 32,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    websiteButtonText: {
+        fontSize: 16,
+        color: '#FF6B6B',
+        fontWeight: '700',
+    },
+    crisisFooter: {
+        fontSize: 11,
+        color: 'rgba(255, 220, 220, 0.85)',
+        textAlign: 'center',
+        lineHeight: 16,
+        fontWeight: '600',
+        paddingTop: 6,
     },
     crisisText: {
         color: 'rgba(255, 231, 231, 0.95)',

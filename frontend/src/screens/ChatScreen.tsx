@@ -8,21 +8,35 @@ import {
     Pressable,
     SafeAreaView,
     StatusBar,
+    Linking,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LinearGradient from 'react-native-linear-gradient';
 import apiClient from '../api/client';
+import { useCrisis } from '../context/CrisisContext';
 
 type ChatMessage = {
     id: string;
     text: string;
-    sender: 'user' | 'ai';
+    sender: 'user' | 'ai' | 'crisis-card';
+    helplines?: HelplineResource[];
 };
 
 type EmotionAnalysis = {
     moodCategory: string;
     stressScore: number;
     distress: 'low' | 'moderate' | 'high';
+};
+
+type HelplineResource = {
+    name: string;
+    phone: string;
+    site: string;
+};
+
+type CrisisData = {
+    detected: boolean;
+    helplines: HelplineResource[];
 };
 
 const STORAGE_SESSION_KEY = 'mh-session-id';
@@ -38,6 +52,7 @@ function getMoodColor(moodCategory: string) {
 }
 
 export default function ChatScreen() {
+    const { setCrisisAlert } = useCrisis();
     const [sessionId, setSessionId] = useState('anonymous-device');
     const [messages, setMessages] = useState<ChatMessage[]>([
         { id: '1', text: "Hi, I'm Mitra. I'm here to listen. How are you feeling today?", sender: 'ai' },
@@ -45,6 +60,7 @@ export default function ChatScreen() {
     const [inputText, setInputText] = useState('');
     const [isSending, setIsSending] = useState(false);
     const [latestAnalysis, setLatestAnalysis] = useState<EmotionAnalysis | null>(null);
+    const [crisisData, setCrisisData] = useState<CrisisData>({ detected: false, helplines: [] });
     const showConversation = messages.length > 1;
 
     useEffect(() => {
@@ -94,6 +110,23 @@ export default function ChatScreen() {
                     stressScore: Number(response.data.analysis.stressScore || 5),
                     distress: response.data.analysis.distress || 'low',
                 });
+            }
+
+            if (response.data?.crisisDetected) {
+                setCrisisData({
+                    detected: true,
+                    helplines: response.data?.helplines || [],
+                });
+                setCrisisAlert(true); // Trigger blinking dashboard tab
+                
+                // Add crisis resources card as a separate message
+                const crisisMsg = {
+                    id: (Date.now() + 2).toString(),
+                    text: '',
+                    sender: 'crisis-card' as const,
+                    helplines: response.data?.helplines || [],
+                };
+                setMessages((prev) => [...prev, crisisMsg]);
             }
         } catch (error) {
             console.error('Failed to get AI response', error);
@@ -205,16 +238,74 @@ export default function ChatScreen() {
                             data={messages}
                             keyExtractor={(item) => item.id}
                             contentContainerStyle={styles.messageListContent}
-                            renderItem={({ item }) => (
-                                <View
-                                    style={[
-                                        styles.messageBubble,
-                                        item.sender === 'user' ? styles.userBubble : styles.aiBubble,
-                                    ]}
-                                >
-                                    <Text style={styles.messageText}>{item.text}</Text>
-                                </View>
-                            )}
+                            renderItem={({ item }) => {
+                                if (item.sender === 'crisis-card') {
+                                    return (
+                                        <View style={styles.crisisMessageCard}>
+                                            <View style={styles.crisisHeader}>
+                                                <Text style={styles.crisisAlertIcon}>🚨</Text>
+                                                <View style={styles.crisisHeaderText}>
+                                                    <Text style={styles.crisisTitle}>Immediate Support Available</Text>
+                                                    <Text style={styles.crisisSubtitle}>We detected crisis language. Help is here.</Text>
+                                                </View>
+                                            </View>
+
+                                            <Text style={styles.crisisResourcesLabel}>Crisis Resources:</Text>
+
+                                            <View style={styles.helplinesList}>
+                                                {item.helplines && item.helplines.length > 0 ? (
+                                                    item.helplines.map((helpline, idx) => {
+                                                        const primaryPhone = helpline.phone.split(/\/|or/i)[0].trim();
+                                                        const phoneNumber = primaryPhone.replace(/[^0-9+]/g, '');
+                                                        return (
+                                                            <View key={idx} style={styles.helplineItem}>
+                                                                <View style={styles.helplineHeader}>
+                                                                    <Text style={styles.helplinePhoneIcon}>📱</Text>
+                                                                    <Text style={styles.helplineName}>{helpline.name}</Text>
+                                                                </View>
+                                                                <Text style={styles.helplinePhone}>{helpline.phone}</Text>
+                                                                <View style={styles.helplineActions}>
+                                                                    <Pressable
+                                                                        style={styles.callButton}
+                                                                        onPress={() => Linking.openURL(`tel:${phoneNumber}`)}
+                                                                    >
+                                                                        <Text style={styles.callButtonText}>📱 Call</Text>
+                                                                    </Pressable>
+                                                                    <Pressable
+                                                                        style={styles.websiteButton}
+                                                                        onPress={() => Linking.openURL(helpline.site)}
+                                                                    >
+                                                                        <Text style={styles.websiteButtonText}>→ Website</Text>
+                                                                    </Pressable>
+                                                                </View>
+                                                            </View>
+                                                        );
+                                                    })
+                                                ) : (
+                                                    <Text style={styles.crisisResourcesLabel}>
+                                                        Please contact local emergency services.
+                                                    </Text>
+                                                )}
+                                            </View>
+
+                                            <Text style={styles.crisisFooter}>
+                                                You are not alone. Tap any resource above to get immediate help.
+                                            </Text>
+                                        </View>
+                                    );
+                                }
+
+                                return (
+                                    <View
+                                        style={[
+                                            styles.messageBubble,
+                                            item.sender === 'user' ? styles.userBubble : styles.aiBubble,
+                                        ]}
+                                    >
+                                        <Text style={styles.messageText}>{item.text}</Text>
+                                    </View>
+                                );
+                            }}
                         />
                     </View>
                 ) : (
@@ -227,6 +318,58 @@ export default function ChatScreen() {
                         <Text style={styles.analysisText}>Mood: {latestAnalysis.moodCategory}</Text>
                         <Text style={styles.analysisText}>Stress: {latestAnalysis.stressScore}/10</Text>
                         <Text style={styles.analysisText}>Distress: {latestAnalysis.distress}</Text>
+                    </View>
+                ) : null}
+
+                {crisisData.detected ? (
+                    <View style={[styles.crisisCard]}>
+                        <View style={styles.crisisHeader}>
+                            <Text style={styles.crisisAlertIcon}>🚨</Text>
+                            <View style={styles.crisisHeaderText}>
+                                <Text style={styles.crisisTitle}>Immediate Support Available</Text>
+                                <Text style={styles.crisisSubtitle}>We detected crisis language. Help is here.</Text>
+                            </View>
+                        </View>
+
+                        <Text style={styles.crisisResourcesLabel}>Crisis Resources:</Text>
+
+                        <View style={styles.helplinesList}>
+                            {crisisData.helplines.length > 0 ? (
+                                crisisData.helplines.map((helpline, idx) => {
+                                    // Extract first number before "/" or "or" separator
+                                    const primaryPhone = helpline.phone.split(/\/|or/i)[0].trim();
+                                    const phoneNumber = primaryPhone.replace(/[^0-9+]/g, '');
+                                    return (
+                                        <View key={idx} style={styles.helplineItem}>
+                                            <View style={styles.helplineInfo}>
+                                                <Text style={styles.helplineName}>{helpline.name}</Text>
+                                                <Text style={styles.helplinePhone}>{helpline.phone}</Text>
+                                            </View>
+                                            <View style={styles.helplineActions}>
+                                                <Pressable
+                                                    style={styles.callButton}
+                                                    onPress={() => Linking.openURL(`tel:${phoneNumber}`).catch(() => {})}
+                                                >
+                                                    <Text style={styles.callButtonText}>📱 Call</Text>
+                                                </Pressable>
+                                                <Pressable
+                                                    style={styles.websiteButton}
+                                                    onPress={() => Linking.openURL(helpline.site).catch(() => {})}
+                                                >
+                                                    <Text style={styles.websiteButtonText}>→</Text>
+                                                </Pressable>
+                                            </View>
+                                        </View>
+                                    );
+                                })
+                            ) : (
+                                <Text style={styles.noHelplines}>Loading resources...</Text>
+                            )}
+                        </View>
+
+                        <Text style={styles.crisisFooter}>
+                            You are not alone. Reach out to one of these resources immediately.
+                        </Text>
                     </View>
                 ) : null}
 
@@ -610,4 +753,157 @@ const styles = StyleSheet.create({
         fontSize: 18,
         lineHeight: 22,
     },
+    crisisCard: {
+        marginBottom: 12,
+        marginHorizontal: 0,
+        paddingVertical: 14,
+        paddingHorizontal: 12,
+        borderRadius: 16,
+        borderWidth: 1.5,
+        borderColor: 'rgba(235, 128, 128, 0.5)',
+        backgroundColor: 'rgba(183, 72, 72, 0.18)',
+        shadowColor: '#EF4444',
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 5,
+    },
+    crisisMessageCard: {
+        marginVertical: 8,
+        marginHorizontal: 12,
+        paddingVertical: 14,
+        paddingHorizontal: 12,
+        borderRadius: 16,
+        borderWidth: 1.5,
+        borderColor: 'rgba(235, 128, 128, 0.5)',
+        backgroundColor: 'rgba(183, 72, 72, 0.18)',
+        shadowColor: '#EF4444',
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 5,
+        maxWidth: '92%',
+        alignSelf: 'flex-start',
+    },
+    crisisHeader: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 10,
+        marginBottom: 12,
+    },
+    crisisAlertIcon: {
+        fontSize: 24,
+        marginTop: 2,
+    },
+    crisisHeaderText: {
+        flex: 1,
+    },
+    crisisTitle: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#FF6B6B',
+        marginBottom: 2,
+    },
+    crisisSubtitle: {
+        fontSize: 12,
+        color: 'rgba(255, 200, 200, 0.85)',
+        lineHeight: 16,
+    },
+    crisisResourcesLabel: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: 'rgba(255, 180, 180, 0.9)',
+        marginBottom: 10,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    helplinesList: {
+        gap: 8,
+        marginBottom: 10,
+    },
+    helplineItem: {
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        borderWidth: 1,
+        borderColor: 'rgba(235, 128, 128, 0.3)',
+        borderRadius: 12,
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+    },
+    helplineHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginBottom: 4,
+    },
+    helplinePhoneIcon: {
+        fontSize: 16,
+    },
+    helplineInfo: {
+        flex: 1,
+    },
+    helplineName: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#FFFFFF',
+        marginBottom: 3,
+        flex: 1,
+    },
+    helplinePhone: {
+        fontSize: 11,
+        color: 'rgba(255, 200, 200, 0.8)',
+        fontWeight: '500',
+        marginBottom: 8,
+    },
+    helplineActions: {
+        flexDirection: 'row',
+        gap: 8,
+        alignItems: 'center',
+    },
+    callButton: {
+        backgroundColor: 'rgba(255, 100, 100, 0.35)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 150, 150, 0.5)',
+        borderRadius: 16,
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        shadowColor: '#FF6B6B',
+        shadowOpacity: 0.3,
+        shadowRadius: 3,
+        shadowOffset: { width: 0, height: 2 },
+        elevation: 3,
+    },
+    callButtonText: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#FFFFFF',
+    },
+    websiteButton: {
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 150, 150, 0.4)',
+        borderRadius: 16,
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    websiteButtonText: {
+        fontSize: 11,
+        color: '#FF6B6B',
+        fontWeight: '700',
+    },
+    noHelplines: {
+        fontSize: 12,
+        color: 'rgba(255, 200, 200, 0.7)',
+        textAlign: 'center',
+        paddingVertical: 12,
+    },
+    crisisFooter: {
+        fontSize: 11,
+        color: 'rgba(255, 200, 200, 0.75)',
+        textAlign: 'center',
+        lineHeight: 15,
+        fontStyle: 'italic',
+    },
 });
+
