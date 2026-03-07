@@ -167,9 +167,11 @@ export default function ChatScreen() {
                             style={styles.orbCore}
                         />
                     </View>
-                    <Text style={styles.heroQuestion}>
-                        How can I <Text style={styles.heroQuestionStrong}>support</Text> you today?
-                    </Text>
+                    {!showConversation ? (
+                        <Text style={styles.heroQuestion}>
+                            How can I <Text style={styles.heroQuestionStrong}>support</Text> you today?
+                        </Text>
+                    ) : null}
                 </View>
 
                 {showConversation ? (
@@ -195,7 +197,14 @@ export default function ChatScreen() {
                 )}
 
                 <View style={styles.bottomDock}>
-                    <View style={styles.micRow}>
+                    <View style={styles.inputContainer}>
+                        <LinearGradient
+                            pointerEvents="none"
+                            colors={['rgba(210, 223, 255, 0.22)', 'rgba(210, 223, 255, 0.06)', 'rgba(210, 223, 255, 0.02)']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.inputGlassEdge}
+                        />
                         <Pressable style={styles.micButton}>
                             <LinearGradient
                                 colors={['#FF78D7', '#A25BFF', '#7B56FF']}
@@ -206,16 +215,6 @@ export default function ChatScreen() {
                                 <Text style={styles.micButtonText}>Mic</Text>
                             </LinearGradient>
                         </Pressable>
-                    </View>
-
-                    <View style={styles.inputContainer}>
-                        <LinearGradient
-                            pointerEvents="none"
-                            colors={['rgba(210, 223, 255, 0.22)', 'rgba(210, 223, 255, 0.06)', 'rgba(210, 223, 255, 0.02)']}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={styles.inputGlassEdge}
-                        />
                         <TextInput
                             style={styles.input}
                             value={inputText}
@@ -464,25 +463,20 @@ const styles = StyleSheet.create({
     bottomDock: {
         marginTop: 'auto',
     },
-    micRow: {
-        alignItems: 'center',
-        marginTop: 8,
-        marginBottom: 18,
-    },
     micButton: {
-        width: 86,
-        height: 86,
-        borderRadius: 43,
+        width: 42,
+        height: 42,
+        borderRadius: 21,
         overflow: 'hidden',
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
         borderColor: 'rgba(255, 226, 255, 0.5)',
         shadowColor: '#C26AFF',
-        shadowOpacity: 0.9,
-        shadowRadius: 16,
-        shadowOffset: { width: 0, height: 10 },
-        elevation: 14,
+        shadowOpacity: 0.55,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 6,
     },
     micButtonGradient: {
         width: '100%',
@@ -492,9 +486,9 @@ const styles = StyleSheet.create({
     },
     micButtonText: {
         color: '#FFFFFF',
-        fontSize: 17,
+        fontSize: 12,
         fontWeight: '700',
-        letterSpacing: 0.3,
+        letterSpacing: 0.2,
         textShadowColor: 'rgba(74, 26, 131, 0.45)',
         textShadowOffset: { width: 0, height: 1 },
         textShadowRadius: 4,

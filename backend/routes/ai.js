@@ -181,6 +181,19 @@ router.post('/chat', async (req, res) => {
     }
 
     try {
+        const contextMessages = await ChatMessage.find({ sessionId })
+            .sort({ createdAt: -1 })
+            .limit(10)
+            .select('role text')
+            .lean();
+
+        const conversationHistory = contextMessages
+            .reverse()
+            .map((item) => ({
+                role: item.role,
+                text: item.text,
+            }));
+
         const heuristic = analyzeEmotionRuleBased(message);
         const extracted = await analyzeEmotionAndExtractData(message, language);
 
@@ -204,7 +217,7 @@ router.post('/chat', async (req, res) => {
             sentiment_score: heuristic.score,
         };
 
-        const reply = await generateCompanionResponse(message, emotionContext, language);
+        const reply = await generateCompanionResponse(message, emotionContext, language, conversationHistory);
 
         await ChatMessage.insertMany([
             {

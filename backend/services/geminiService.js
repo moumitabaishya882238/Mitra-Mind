@@ -20,7 +20,7 @@ You will be given the student's recent emotion context (if any) and their curren
 Respond directly to their message as Mitra.
 `;
 
-async function generateCompanionResponse(userMessage, emotionContext = {}, language = 'en') {
+async function generateCompanionResponse(userMessage, emotionContext = {}, language = 'en', conversationHistory = []) {
     try {
         const model = genAI.getGenerativeModel({
             model: 'gemini-2.5-flash',
@@ -31,7 +31,13 @@ async function generateCompanionResponse(userMessage, emotionContext = {}, langu
             ? `Student's recent context: ${JSON.stringify(emotionContext, null, 2)}\n\n`
             : '';
 
-        const finalPrompt = `${contextStr}User (${language}): ${userMessage}`;
+        const historyStr = Array.isArray(conversationHistory) && conversationHistory.length > 0
+            ? `Recent conversation (oldest to latest):\n${conversationHistory
+                .map((entry) => `${entry.role === 'user' ? 'User' : 'Mitra'}: ${entry.text}`)
+                .join('\n')}\n\n`
+            : '';
+
+        const finalPrompt = `${contextStr}${historyStr}User (${language}): ${userMessage}`;
 
         const result = await model.generateContent(finalPrompt);
         const response = await result.response;
