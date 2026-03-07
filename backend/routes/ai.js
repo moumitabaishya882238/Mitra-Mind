@@ -334,4 +334,40 @@ router.get('/dashboard-insights', async (req, res) => {
     }
 });
 
+// @route   POST /ai/log-session-mood
+// @desc    Persist mood result from guided MindSpace sessions
+router.post('/log-session-mood', async (req, res) => {
+    const {
+        sessionId = 'anonymous-device',
+        moodCategory = 'Neutral',
+        stressScore = 5,
+        crisisDetected = false,
+        conversationSummary = '',
+    } = req.body || {};
+
+    try {
+        const normalizedMood = normalizeMoodCategory(moodCategory);
+        const clampedStress = Math.max(1, Math.min(10, Number(stressScore) || 5));
+
+        const saved = await DailyMoodLog.create({
+            sessionId,
+            moodCategory: normalizedMood,
+            stressScore: clampedStress,
+            crisisDetected: Boolean(crisisDetected),
+            conversationSummary: String(conversationSummary || '').slice(0, 400),
+        });
+
+        res.json({
+            success: true,
+            id: saved._id,
+            moodCategory: normalizedMood,
+            stressScore: clampedStress,
+            emoji: moodEmoji(normalizedMood),
+        });
+    } catch (error) {
+        console.error('Session mood log error:', error);
+        res.status(500).json({ error: 'Failed to save session mood log' });
+    }
+});
+
 module.exports = router;

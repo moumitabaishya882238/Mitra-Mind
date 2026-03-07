@@ -9,6 +9,7 @@ import ChatScreen from '../screens/ChatScreen';
 import DashboardScreen from '../screens/DashboardScreen';
 import WelcomeScreen from '../screens/WelcomeScreen';
 import CopingToolkitScreen from '../screens/CopingToolkitScreen';
+import CopingActionGuideScreen from '../screens/CopingActionGuideScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 
 const Stack = createNativeStackNavigator();
@@ -91,6 +92,7 @@ const MainTabNavigator = () => {
                 name="Toolkit" 
                 component={CopingToolkitScreen}
                 options={{
+                    title: 'MindSpace',
                     tabBarIcon: () => null,
                 }}
             />
@@ -112,6 +114,7 @@ const AppNavigator = () => {
             {/* Start with a warm welcome screen - no form, just friendly greeting */}
             <Stack.Screen name="Welcome" component={WelcomeScreen} />
             <Stack.Screen name="MainTabs" component={MainTabNavigator} />
+            <Stack.Screen name="CopingActionGuide" component={CopingActionGuideScreen} />
         </Stack.Navigator>
     );
 };

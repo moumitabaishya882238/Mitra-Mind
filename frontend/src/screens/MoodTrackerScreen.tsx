@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, Button, StyleSheet } from 'react-native';
+import { View, Text, Button, StyleSheet, SafeAreaView, StatusBar } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 
 export default function MoodTrackerScreen({ navigation }: any) {
 
@@ -11,21 +12,71 @@ export default function MoodTrackerScreen({ navigation }: any) {
 
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>How are you feeling right now?</Text>
+            <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
 
-            <View style={styles.moodGrid}>
-                <Button title="Happy 😊" onPress={() => handleMoodSelect('Happy')} />
-                <Button title="Calm 😌" onPress={() => handleMoodSelect('Calm')} />
-                <Button title="Stressed 😫" onPress={() => handleMoodSelect('Stressed')} />
-                <Button title="Anxious 😰" onPress={() => handleMoodSelect('Anxious')} />
-                <Button title="Sad 😔" onPress={() => handleMoodSelect('Sad')} />
+            <View style={styles.backgroundLayer}>
+                <LinearGradient
+                    colors={['#050A22', '#0E0D30', '#1B1240', '#2C1554']}
+                    start={{ x: 0.5, y: 0 }}
+                    end={{ x: 0.5, y: 1 }}
+                    style={styles.mainGradient}
+                />
+                <LinearGradient
+                    colors={['rgba(95, 129, 255, 0.10)', 'transparent', 'rgba(154, 89, 255, 0.12)']}
+                    start={{ x: 0.1, y: 0 }}
+                    end={{ x: 0.9, y: 1 }}
+                    style={styles.gradientVeil}
+                />
             </View>
+
+            <SafeAreaView style={styles.safeArea}>
+                <View style={styles.content}>
+                    <Text style={styles.title}>How are you feeling right now?</Text>
+
+                    <View style={styles.moodGrid}>
+                        <Button title="Happy 😊" onPress={() => handleMoodSelect('Happy')} />
+                        <Button title="Calm 😌" onPress={() => handleMoodSelect('Calm')} />
+                        <Button title="Stressed 😫" onPress={() => handleMoodSelect('Stressed')} />
+                        <Button title="Anxious 😰" onPress={() => handleMoodSelect('Anxious')} />
+                        <Button title="Sad 😔" onPress={() => handleMoodSelect('Sad')} />
+                    </View>
+                </View>
+            </SafeAreaView>
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFF' },
-    title: { fontSize: 24, fontWeight: 'bold', marginBottom: 30 },
-    moodGrid: { width: '80%', gap: 15 },
+    container: {
+        flex: 1,
+        backgroundColor: '#000',
+    },
+    backgroundLayer: {
+        ...StyleSheet.absoluteFillObject,
+        zIndex: -1,
+    },
+    mainGradient: {
+        ...StyleSheet.absoluteFillObject,
+    },
+    gradientVeil: {
+        ...StyleSheet.absoluteFillObject,
+    },
+    safeArea: {
+        flex: 1,
+    },
+    content: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    title: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        marginBottom: 30,
+        color: '#FFFFFF',
+    },
+    moodGrid: {
+        width: '80%',
+        gap: 15,
+    },
 });

@@ -14,6 +14,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import apiClient from '../api/client';
 import { useCrisis } from '../context/CrisisContext';
+import { copingActions, MoodCategory } from '../data/copingActions';
 
 type InsightResponse = {
     latest: {
@@ -48,12 +49,26 @@ const STORAGE_SESSION_KEY = 'mh-session-id';
 
 function getMoodColor(moodCategory: string) {
     const mood = moodCategory.toLowerCase();
-    if (mood.includes('calm') || mood.includes('happy')) return '#34D399';       // Green
-    if (mood.includes('neutral')) return '#60A5FA';                             // Blue
-    if (mood.includes('stressed')) return '#FACC15';                            // Yellow
-    if (mood.includes('anxious')) return '#FB923C';                             // Orange
-    if (mood.includes('depressed') || mood.includes('sad')) return '#F87171';   // Red
+    if (mood.includes('calm') || mood.includes('happy')) return '#34D399';
+    if (mood.includes('neutral')) return '#60A5FA';
+    if (mood.includes('stressed')) return '#FACC15';
+    if (mood.includes('anxious')) return '#FB923C';
+    if (mood.includes('depressed') || mood.includes('sad')) return '#F87171';
+    if (mood.includes('angry')) return '#F97316';
     return '#A78BFA';
+}
+
+function normalizeMoodForActivities(moodCategory: string): MoodCategory {
+    const mood = String(moodCategory || '').toLowerCase();
+    if (mood.includes('happy')) return 'Happy';
+    if (mood.includes('calm')) return 'Calm';
+    if (mood.includes('neutral')) return 'Neutral';
+    if (mood.includes('stress')) return 'Stressed';
+    if (mood.includes('anx')) return 'Anxious';
+    if (mood.includes('sad')) return 'Sad';
+    if (mood.includes('depress')) return 'Depressed';
+    if (mood.includes('angry')) return 'Angry';
+    return 'Unknown';
 }
 
 const defaultInsights: InsightResponse = {
@@ -117,14 +132,36 @@ export default function DashboardScreen() {
     const energyPercent = Math.max(10, Math.min(100, (10 - insights.latest.stressScore) * 10));
 
     const trendBars = (insights.trend.length ? insights.trend : [
-        { score: 5, moodCategory: 'Neutral' }, 
-        { score: 6, moodCategory: 'Stressed' }, 
-        { score: 4, moodCategory: 'Calm' }, 
-        { score: 7, moodCategory: 'Anxious' }, 
-        { score: 5, moodCategory: 'Neutral' }, 
-        { score: 6, moodCategory: 'Stressed' }, 
+        { score: 5, moodCategory: 'Neutral' },
+        { score: 6, moodCategory: 'Stressed' },
+        { score: 4, moodCategory: 'Calm' },
+        { score: 7, moodCategory: 'Anxious' },
+        { score: 5, moodCategory: 'Neutral' },
+        { score: 6, moodCategory: 'Stressed' },
         { score: 5, moodCategory: 'Neutral' },
     ]).slice(-7);
+
+    const activeMood = normalizeMoodForActivities(insights.latest.moodCategory);
+
+    const moodOrder: MoodCategory[] = [
+        'Happy',
+        'Calm',
+        'Neutral',
+        'Stressed',
+        'Anxious',
+        'Sad',
+        'Depressed',
+        'Angry',
+    ];
+
+    const moodCoverage = moodOrder.map((mood) => ({
+        mood,
+        count: copingActions.filter((item) => item.moods.includes(mood)).length,
+    }));
+
+    const activityCandidates = copingActions.filter((item) => item.moods.includes(activeMood));
+    const availableActivities = activityCandidates.filter((item) => item.availability === 'available');
+    const upcomingActivities = activityCandidates.filter((item) => item.availability === 'under-development');
 
     return (
         <View style={styles.container}>
@@ -300,16 +337,69 @@ export default function DashboardScreen() {
                     <View style={styles.analyticsCard}>
                         <View style={styles.cardHeader}>
                             <Text style={styles.cardTitle}>Personalized coping strategies</Text>
-                            <Text style={styles.cardDate}>Live</Text>
+                            <Text style={styles.cardDate}>{activeMood}</Text>
                         </View>
+
+                        <Text style={styles.strategySubtitle}>
+                            Based on your latest mood, here are matching MindSpace activities.
+                        </Text>
+
+                        <View style={styles.moodCoverageWrap}>
+                            {moodCoverage.map((entry) => (
+                                <View
+                                    key={entry.mood}
+                                    style={[
+                                        styles.moodCoverageChip,
+                                        entry.mood === activeMood ? styles.moodCoverageChipActive : null,
+                                    ]}
+                                >
+                                    <Text style={styles.moodCoverageText}>{entry.mood}</Text>
+                                    <Text style={styles.moodCoverageCount}>{entry.count}</Text>
+                                </View>
+                            ))}
+                        </View>
+
+                        <Text style={styles.strategyGroupTitle}>Ready Now</Text>
                         <View style={styles.activityList}>
-                            {(insights.copingStrategies.length ? insights.copingStrategies : [
-                                'Start a conversation to receive personalized coping strategies.',
-                            ]).slice(0, 4).map((strategy) => (
-                                <View style={styles.activityItem} key={strategy}>
-                                    <Text style={styles.activityIcon}>Tip</Text>
+                            {(availableActivities.length ? availableActivities : [{
+                                id: 'fallback',
+                                title: 'No direct match yet',
+                                summary: 'Try opening MindSpace to explore nearby categories.',
+                                duration: '',
+                            }]).slice(0, 4).map((item) => (
+                                <View style={styles.activityItem} key={item.id}>
+                                    <Text style={styles.activityIcon}>Play</Text>
                                     <View style={styles.activityInfo}>
-                                        <Text style={styles.activityTitle}>{strategy}</Text>
+                                        <Text style={styles.activityTitle}>{item.title}</Text>
+                                        <Text style={styles.activityTime}>{item.summary}</Text>
+                                    </View>
+                                    {item.id !== 'fallback' ? (
+                                        <Pressable
+                                            style={styles.activityCta}
+                                            onPress={() => navigation.navigate('CopingActionGuide', { actionId: item.id })}
+                                        >
+                                            <Text style={styles.activityCtaText}>Start</Text>
+                                        </Pressable>
+                                    ) : null}
+                                </View>
+                            ))}
+                        </View>
+
+                        <Text style={[styles.strategyGroupTitle, styles.strategyGroupTitleSecondary]}>Under Development</Text>
+                        <View style={styles.activityList}>
+                            {(upcomingActivities.length ? upcomingActivities : [{
+                                id: 'fallback-upcoming',
+                                title: 'All good here',
+                                summary: 'Current mood already has active options.',
+                            }]).slice(0, 5).map((item) => (
+                                <View style={styles.activityItem} key={item.id}>
+                                    <Text style={styles.activityIcon}>Soon</Text>
+                                    <View style={styles.activityInfo}>
+                                        <Text style={styles.activityTitle}>{item.title}</Text>
+                                        <Text style={styles.activityTime}>{item.summary}</Text>
+                                    </View>
+                                    <View style={styles.devPill}>
+                                        <Text style={styles.devPillText}>Under Dev</Text>
                                     </View>
                                 </View>
                             ))}
@@ -758,6 +848,56 @@ const styles = StyleSheet.create({
         color: 'rgba(226, 233, 255, 0.55)',
         textAlign: 'center',
     },
+    strategySubtitle: {
+        fontSize: 12,
+        color: 'rgba(228, 234, 255, 0.75)',
+        marginBottom: 10,
+        lineHeight: 18,
+    },
+    moodCoverageWrap: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+        marginBottom: 12,
+    },
+    moodCoverageChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: 'rgba(212, 202, 255, 0.35)',
+        backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    },
+    moodCoverageChipActive: {
+        borderColor: 'rgba(195, 233, 255, 0.9)',
+        backgroundColor: 'rgba(101, 156, 255, 0.24)',
+    },
+    moodCoverageText: {
+        fontSize: 11,
+        color: '#E8EEFF',
+        fontWeight: '600',
+    },
+    moodCoverageCount: {
+        minWidth: 18,
+        textAlign: 'center',
+        fontSize: 11,
+        color: '#F5F8FF',
+        fontWeight: '700',
+    },
+    strategyGroupTitle: {
+        fontSize: 12,
+        color: 'rgba(219, 229, 255, 0.9)',
+        fontWeight: '700',
+        marginBottom: 8,
+        textTransform: 'uppercase',
+        letterSpacing: 0.4,
+    },
+    strategyGroupTitleSecondary: {
+        marginTop: 10,
+    },
     activityList: {
         gap: 10,
     },
@@ -788,6 +928,32 @@ const styles = StyleSheet.create({
         fontSize: 11,
         color: 'rgba(226, 233, 255, 0.65)',
         marginTop: 2,
+    },
+    activityCta: {
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(188, 224, 255, 0.65)',
+        backgroundColor: 'rgba(97, 149, 255, 0.24)',
+    },
+    activityCtaText: {
+        color: '#F3F8FF',
+        fontSize: 11,
+        fontWeight: '700',
+    },
+    devPill: {
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 213, 145, 0.5)',
+        backgroundColor: 'rgba(255, 173, 74, 0.2)',
+    },
+    devPillText: {
+        color: '#FFE8C2',
+        fontSize: 10,
+        fontWeight: '700',
     },
     bottomSpacer: {
         height: 20,
