@@ -1,6 +1,114 @@
 const express = require('express');
 const router = express.Router();
 const { generateCompanionResponse, analyzeEmotionAndExtractData } = require('../services/geminiService');
+const DailyMoodLog = require('../models/DailyMoodLog');
+const ChatMessage = require('../models/ChatMessage');
+
+const HELPLINES = [
+    { name: 'India - Tele MANAS', phone: '14416 / 1-800-891-4416', site: 'https://telemanas.mohfw.gov.in' },
+    { name: 'USA & Canada - 988 Lifeline', phone: 'Call or text 988', site: 'https://988lifeline.org' },
+    { name: 'UK & ROI - Samaritans', phone: '116 123', site: 'https://www.samaritans.org' },
+    { name: 'Global hotline directory', phone: 'Varies by country', site: 'https://findahelpline.com' },
+];
+
+const POSITIVE_WORDS = [
+    'okay', 'calm', 'better', 'hopeful', 'happy', 'good', 'relaxed', 'fine', 'grateful', 'peaceful',
+    'bien', 'tranquilo', 'feliz', 'mejor', 'shant', 'achha', 'behtar', 'khush',
+    'shant', 'accha', 'theek', 'शांत', 'अच्छा', 'बेहतर', 'खुश',
+];
+
+const NEGATIVE_WORDS = [
+    'sad', 'anxious', 'stressed', 'depressed', 'hopeless', 'lonely', 'tired', 'panic', 'worthless', 'angry',
+    'triste', 'ansioso', 'estresado', 'solo', 'cansado', 'nirash', 'udas', 'tanav', 'akela', 'bekar',
+    'pareshan', 'thaka', 'निराश', 'उदास', 'तनाव', 'अकेला',
+];
+
+const CRISIS_WORDS = [
+    'suicide', 'kill myself', 'end my life', 'self-harm', 'die', "can't go on", 'want to disappear',
+    'me quiero morir', 'suicidio', 'autolesion',
+    'marna chahta', 'aatmahatya', 'khud ko nuksan', 'मरना चाहता', 'आत्महत्या', 'खुद को नुकसान',
+];
+
+function tokenize(text = '') {
+    return text
+        .toLowerCase()
+    .replace(/[^\p{L}\s]/gu, ' ')
+        .split(/\s+/)
+        .filter(Boolean);
+}
+
+function containsPhrase(text = '', phrases = []) {
+    const lower = text.toLowerCase();
+    return phrases.some((phrase) => lower.includes(phrase));
+}
+
+function normalizeMoodCategory(mood = '') {
+    const value = String(mood || '').toLowerCase();
+    if (value.includes('happy')) return 'Happy';
+    if (value.includes('calm')) return 'Calm';
+    if (value.includes('neutral')) return 'Neutral';
+    if (value.includes('stress')) return 'Stressed';
+    if (value.includes('anx')) return 'Anxious';
+    if (value.includes('sad')) return 'Sad';
+    if (value.includes('depress')) return 'Depressed';
+    if (value.includes('angry')) return 'Angry';
+    return 'Unknown';
+}
+
+function analyzeEmotionRuleBased(text = '') {
+    const tokens = tokenize(text);
+    let score = 0;
+
+    for (const token of tokens) {
+        if (POSITIVE_WORDS.includes(token)) score += 1;
+        if (NEGATIVE_WORDS.includes(token)) score -= 1;
+    }
+
+    const crisis = containsPhrase(text, CRISIS_WORDS);
+    const distress = score <= -2 ? 'high' : score < 0 ? 'moderate' : 'low';
+    return { score, distress, crisis };
+}
+
+function copingStrategies(analysis) {
+    const base = [
+        'Try a 4-7-8 breathing cycle for 2 minutes.',
+        'Name 5 things you can see, 4 you can feel, 3 you can hear (grounding).',
+        'Write one self-compassion sentence you would tell a friend.',
+        'Break your next task into a 10-minute starter step.',
+    ];
+
+    if (analysis.distress === 'high') {
+        return [
+            'Pause and place your hand on your chest; breathe slowly for 10 cycles.',
+            'Text or call one trusted person and share exactly one feeling.',
+            'Reduce overload: drink water, stand, and take a 5-minute walk.',
+            ...base,
+        ];
+    }
+
+    if (analysis.distress === 'moderate') {
+        return [
+            'Use a thought record: situation -> thought -> evidence -> balanced thought.',
+            'Set a 15-minute focus timer, then take a stretch break.',
+            ...base,
+        ];
+    }
+
+    return [
+        'Keep a short gratitude note: three things that went okay today.',
+        'Protect sleep: avoid screens 30 minutes before bed.',
+        ...base,
+    ];
+}
+
+function moodEmoji(mood) {
+    const value = String(mood || '').toLowerCase();
+    if (value.includes('happy') || value.includes('calm')) return '🙂';
+    if (value.includes('neutral')) return '😐';
+    if (value.includes('stress') || value.includes('anx') || value.includes('angry')) return '😟';
+    if (value.includes('sad') || value.includes('depress')) return '😔';
+    return '😐';
+}
 
 // @route   POST /ai/analyze-emotion
 // @desc    Analyze student's text for emotional state, stress score, and crisis keywords
@@ -60,6 +168,156 @@ router.post('/detect-crisis', async (req, res) => {
     } catch (error) {
         console.error("Crisis detection error:", error);
         res.status(500).json({ error: 'Failed to evaluate crisis state' });
+    }
+});
+
+// @route   POST /ai/chat
+// @desc    End-to-end chat: analyze + respond + persist
+router.post('/chat', async (req, res) => {
+    const { message, language = 'en', sessionId = 'anonymous-device' } = req.body;
+
+    if (!message) {
+        return res.status(400).json({ error: 'Message text is required' });
+    }
+
+    try {
+        const heuristic = analyzeEmotionRuleBased(message);
+        const extracted = await analyzeEmotionAndExtractData(message, language);
+
+        const moodCategory = normalizeMoodCategory(extracted.mood_category);
+        const stressScore = Number.isFinite(extracted.stress_score)
+            ? Math.max(1, Math.min(10, Number(extracted.stress_score)))
+            : heuristic.distress === 'high'
+                ? 8
+                : heuristic.distress === 'moderate'
+                    ? 6
+                    : 4;
+
+        const distress = stressScore >= 8 ? 'high' : stressScore >= 6 ? 'moderate' : 'low';
+        const crisisDetected = Boolean(extracted.crisis_detected) || heuristic.crisis;
+
+        const emotionContext = {
+            mood_category: moodCategory,
+            stress_score: stressScore,
+            distress,
+            crisis_detected: crisisDetected,
+            sentiment_score: heuristic.score,
+        };
+
+        const reply = await generateCompanionResponse(message, emotionContext, language);
+
+        await ChatMessage.insertMany([
+            {
+                sessionId,
+                role: 'user',
+                language,
+                text: message,
+                moodCategory,
+                stressScore,
+                distressLevel: distress,
+                crisisDetected,
+            },
+            {
+                sessionId,
+                role: 'bot',
+                language,
+                text: reply,
+                moodCategory,
+                stressScore,
+                distressLevel: distress,
+                crisisDetected,
+            },
+        ]);
+
+        await DailyMoodLog.create({
+            sessionId,
+            moodCategory,
+            stressScore,
+            crisisDetected,
+            conversationSummary: message.slice(0, 400),
+        });
+
+        res.json({
+            reply,
+            analysis: {
+                moodCategory,
+                stressScore,
+                distress,
+                crisisDetected,
+                sentimentScore: heuristic.score,
+                emoji: moodEmoji(moodCategory),
+            },
+            copingStrategies: copingStrategies({ distress }),
+            helplines: HELPLINES,
+        });
+    } catch (error) {
+        console.error('Chat pipeline error:', error);
+        res.status(500).json({ error: 'Failed to process chat message' });
+    }
+});
+
+// @route   GET /ai/dashboard-insights
+// @desc    Get persisted mood trend and recent interaction insights
+router.get('/dashboard-insights', async (req, res) => {
+    const sessionId = req.query.sessionId || 'anonymous-device';
+
+    try {
+        const moodEntries = await DailyMoodLog.find({ sessionId })
+            .sort({ date: -1 })
+            .limit(14)
+            .lean();
+
+        const recentMessages = await ChatMessage.find({ sessionId, role: 'user' })
+            .sort({ createdAt: -1 })
+            .limit(5)
+            .lean();
+
+        const latestMood = moodEntries[0] || null;
+        const trend = moodEntries
+            .slice()
+            .reverse()
+            .map((entry) => ({
+                stressScore: entry.stressScore,
+                score: 10 - entry.stressScore,
+                moodCategory: entry.moodCategory,
+                date: entry.date,
+            }));
+
+        const avgStress = moodEntries.length
+            ? moodEntries.reduce((sum, entry) => sum + entry.stressScore, 0) / moodEntries.length
+            : 5;
+
+        const latestDistress = avgStress >= 8 ? 'high' : avgStress >= 6 ? 'moderate' : 'low';
+
+        res.json({
+            latest: latestMood
+                ? {
+                    moodCategory: latestMood.moodCategory,
+                    stressScore: latestMood.stressScore,
+                    crisisDetected: latestMood.crisisDetected,
+                    emoji: moodEmoji(latestMood.moodCategory),
+                }
+                : {
+                    moodCategory: 'Neutral',
+                    stressScore: 5,
+                    crisisDetected: false,
+                    emoji: '😐',
+                },
+            trend,
+            summary: {
+                entryCount: moodEntries.length,
+                averageStress: Number(avgStress.toFixed(2)),
+            },
+            copingStrategies: copingStrategies({ distress: latestDistress }),
+            recentInteractions: recentMessages.map((item) => ({
+                text: item.text,
+                createdAt: item.createdAt,
+            })),
+            helplines: HELPLINES,
+        });
+    } catch (error) {
+        console.error('Dashboard insights error:', error);
+        res.status(500).json({ error: 'Failed to load dashboard insights' });
     }
 });
 

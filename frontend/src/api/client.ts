@@ -1,7 +1,8 @@
 import axios from 'axios';
 
-// Replace with local network IP or localhost if running android emulator
-const BASE_URL = 'http://10.0.2.2:5001';
+// Android emulator reaches host machine via 10.0.2.2.
+// Keep this port in sync with backend/.env PORT.
+const BASE_URL = 'http://10.0.2.2:5000';
 
 const apiClient = axios.create({
     baseURL: BASE_URL,

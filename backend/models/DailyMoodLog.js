@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
 
 const DailyMoodLogSchema = new mongoose.Schema({
+    sessionId: {
+        type: String,
+        default: 'anonymous-device',
+        index: true
+    },
     studentId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Student', // Or User depending on auth

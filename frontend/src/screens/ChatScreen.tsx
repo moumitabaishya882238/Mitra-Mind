@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     View,
     Text,
@@ -9,38 +9,77 @@ import {
     SafeAreaView,
     StatusBar,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import LinearGradient from 'react-native-linear-gradient';
 import apiClient from '../api/client';
 
+type ChatMessage = {
+    id: string;
+    text: string;
+    sender: 'user' | 'ai';
+};
+
+const STORAGE_SESSION_KEY = 'mh-session-id';
+
 export default function ChatScreen() {
-    const [messages, setMessages] = useState<{ id: string, text: string, sender: 'user' | 'ai' }[]>([
-        { id: '1', text: "Hi, I'm Mitra. I'm here to listen. How are you feeling today?", sender: 'ai' }
+    const [sessionId, setSessionId] = useState('anonymous-device');
+    const [messages, setMessages] = useState<ChatMessage[]>([
+        { id: '1', text: "Hi, I'm Mitra. I'm here to listen. How are you feeling today?", sender: 'ai' },
     ]);
     const [inputText, setInputText] = useState('');
+    const [isSending, setIsSending] = useState(false);
     const showConversation = messages.length > 1;
 
-    const sendMessage = async () => {
-        if (!inputText.trim()) return;
+    useEffect(() => {
+        const initializeSession = async () => {
+            try {
+                const storedSession = await AsyncStorage.getItem(STORAGE_SESSION_KEY);
+                if (storedSession) {
+                    setSessionId(storedSession);
+                } else {
+                    const generatedSession = `session-${Date.now()}`;
+                    await AsyncStorage.setItem(STORAGE_SESSION_KEY, generatedSession);
+                    setSessionId(generatedSession);
+                }
+            } catch (error) {
+                console.warn('Session init failed', error);
+            }
+        };
 
-        const userMsg = { id: Date.now().toString(), text: inputText, sender: 'user' as const };
-        setMessages(prev => [...prev, userMsg]);
+        initializeSession();
+    }, []);
+
+    const sendMessage = async () => {
+        if (!inputText.trim() || isSending) return;
+
+        const userMsg = { id: Date.now().toString(), text: inputText.trim(), sender: 'user' as const };
+        setMessages((prev) => [...prev, userMsg]);
         setInputText('');
+        setIsSending(true);
 
         try {
-            // Send to backend API
-            const response = await apiClient.post('/ai/generate-response', {
-                message: userMsg.text
+            const response = await apiClient.post('/ai/chat', {
+                message: userMsg.text,
+                language: 'en',
+                sessionId,
             });
 
-            const aiMsg = { id: (Date.now() + 1).toString(), text: response.data.reply, sender: 'ai' as const };
-            setMessages(prev => [...prev, aiMsg]);
-
-            // OPTIONAL: trigger Text-to-Speech (TTS) here with react-native-tts for the aiMsg.text
-
+            const aiMsg = {
+                id: (Date.now() + 1).toString(),
+                text: response.data?.reply || "I'm here with you. Could you share a bit more?",
+                sender: 'ai' as const,
+            };
+            setMessages((prev) => [...prev, aiMsg]);
         } catch (error) {
             console.error('Failed to get AI response', error);
-            const errorMsg = { id: (Date.now() + 1).toString(), text: "Sorry, I'm having trouble connecting right now.", sender: 'ai' as const };
-            setMessages(prev => [...prev, errorMsg]);
+            const errorMsg = {
+                id: (Date.now() + 1).toString(),
+                text: "Sorry, I'm having trouble connecting right now.",
+                sender: 'ai' as const,
+            };
+            setMessages((prev) => [...prev, errorMsg]);
+        } finally {
+            setIsSending(false);
         }
     };
 
@@ -137,7 +176,7 @@ export default function ChatScreen() {
                     <View style={styles.messageListContainer}>
                         <FlatList
                             data={messages}
-                            keyExtractor={item => item.id}
+                            keyExtractor={(item) => item.id}
                             contentContainerStyle={styles.messageListContent}
                             renderItem={({ item }) => (
                                 <View
@@ -186,14 +225,14 @@ export default function ChatScreen() {
                             onSubmitEditing={sendMessage}
                             returnKeyType="send"
                         />
-                        <Pressable style={styles.sendButton} onPress={sendMessage}>
+                        <Pressable style={styles.sendButton} onPress={sendMessage} disabled={isSending}>
                             <LinearGradient
                                 colors={['#955CFF', '#6E4CE8']}
                                 start={{ x: 0.2, y: 0.1 }}
                                 end={{ x: 0.9, y: 0.9 }}
                                 style={styles.sendButtonGradient}
                             >
-                                <Text style={styles.sendButtonText}>↗</Text>
+                                <Text style={styles.sendButtonText}>{isSending ? '...' : '↗'}</Text>
                             </LinearGradient>
                         </Pressable>
                     </View>
@@ -286,21 +325,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 10,
-    },
-    iconGhost: {
-        width: 38,
-        height: 38,
-        borderRadius: 19,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'rgba(152, 132, 255, 0.16)',
-        borderWidth: 1,
-        borderColor: 'rgba(220, 210, 255, 0.2)',
-    },
-    iconGhostText: {
-        color: 'rgba(235, 238, 255, 0.92)',
-        fontSize: 17,
-        fontWeight: '700',
     },
     titlePill: {
         paddingHorizontal: 26,

@@ -1,7 +1,7 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-// Ensure you set GOOGLE_AI_API_KEY in your .env
-const apiKey = process.env.GOOGLE_AI_API_KEY || 'YOUR_API_KEY';
+// Accept either legacy GOOGLE_AI_API_KEY or GEMINI_API_KEY from .env
+const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || 'YOUR_API_KEY';
 const genAI = new GoogleGenerativeAI(apiKey);
 
 // System prompt specific to student mental health companion
