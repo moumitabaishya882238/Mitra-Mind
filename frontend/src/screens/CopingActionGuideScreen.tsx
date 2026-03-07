@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     Animated,
     View,
@@ -17,6 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Video from 'react-native-video';
 import apiClient from '../api/client';
 import { copingActions } from '../data/copingActions';
+import { useVoiceInput, useVoiceOutput } from '../hooks/useVoice';
 
 type RouteParams = {
     actionId?: string;
@@ -160,23 +161,53 @@ export default function CopingActionGuideScreen() {
     const [colorHuntRoundIndex, setColorHuntRoundIndex] = useState(0);
     const [colorHuntCompleted, setColorHuntCompleted] = useState<boolean[]>([false, false, false, false, false]);
     const [isColorHuntTransitioning, setIsColorHuntTransitioning] = useState(false);
+    const [voiceGuidanceEnabled, setVoiceGuidanceEnabled] = useState(true);
+
+    const voiceInput = useVoiceInput();
+    const voiceOutput = useVoiceOutput();
+    const {
+        state: voiceInputState,
+        transcript: voiceTranscript,
+        isListening: isVoiceListening,
+        startListening: startVoiceListening,
+        stopListening: stopVoiceListening,
+        clearTranscript: clearVoiceTranscript,
+        error: voiceInputError,
+    } = voiceInput;
+    const {
+        state: voiceOutputState,
+        speak: speakVoice,
+        stop: stopVoicePlayback,
+    } = voiceOutput;
+    const lastSpokenCoachRef = useRef('');
+    const lastSpokenCountdownRef = useRef('');
 
     const breathAnim = useRef(new Animated.Value(0)).current;
     const tickAnim = useRef(new Animated.Value(0)).current;
     const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const delayedCountdownRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const clearDelayedCountdown = () => {
+        if (delayedCountdownRef.current) {
+            clearTimeout(delayedCountdownRef.current);
+            delayedCountdownRef.current = null;
+        }
+    };
 
     const clearRunningTimer = () => {
         if (timerRef.current) {
             clearInterval(timerRef.current);
             timerRef.current = null;
         }
+        clearDelayedCountdown();
     };
 
     useEffect(() => {
         return () => {
             clearRunningTimer();
+            stopVoicePlayback();
         };
-    }, []);
+    }, [stopVoicePlayback]);
 
     useEffect(() => {
         clearRunningTimer();
@@ -227,6 +258,79 @@ export default function CopingActionGuideScreen() {
         setCoachText('Press Start when you are ready.');
     }, [mode, breathAnim]);
 
+    useEffect(() => {
+        if (
+            mode === 'grounding' &&
+            sessionState === 'running' &&
+            voiceInputState === 'processing' &&
+            voiceTranscript.trim()
+        ) {
+            setCurrentItemInput(voiceTranscript.trim());
+            clearVoiceTranscript();
+        }
+    }, [mode, sessionState, voiceInputState, voiceTranscript, clearVoiceTranscript]);
+
+    const speakText = useCallback(
+        async (text: string, interruptCurrent = true) => {
+            const trimmed = text.trim();
+            if (!trimmed) return;
+            try {
+                if (interruptCurrent) {
+                    await stopVoicePlayback();
+                }
+                await speakVoice(trimmed);
+            } catch (error) {
+                console.warn('Voice guidance failed', error);
+            }
+        },
+        [stopVoicePlayback, speakVoice]
+    );
+
+    useEffect(() => {
+        if (!voiceGuidanceEnabled || !isGuidedMode) {
+            return;
+        }
+
+        const shouldSpeak = sessionState === 'running' || sessionState === 'idle' || sessionState === 'done';
+        if (!shouldSpeak) {
+            return;
+        }
+
+        if (!coachText.trim() || coachText === lastSpokenCoachRef.current) {
+            return;
+        }
+
+        lastSpokenCoachRef.current = coachText;
+        speakText(coachText);
+    }, [voiceGuidanceEnabled, isGuidedMode, coachText, sessionState, speakText]);
+
+    useEffect(() => {
+        if (!voiceGuidanceEnabled || !isGuidedMode || sessionState !== 'running') {
+            return;
+        }
+
+        if (countdown < 1) {
+            return;
+        }
+
+        const tickKey = `${mode || 'default'}-${phase}-${cycle}-${countdown}`;
+        if (tickKey === lastSpokenCountdownRef.current) {
+            return;
+        }
+
+        lastSpokenCountdownRef.current = tickKey;
+        speakText(String(countdown), false);
+    }, [
+        voiceGuidanceEnabled,
+        isGuidedMode,
+        sessionState,
+        countdown,
+        mode,
+        phase,
+        cycle,
+        speakText,
+    ]);
+
     const animateCircle = (target: number, duration: number) => {
         Animated.timing(breathAnim, {
             toValue: target,
@@ -271,22 +375,51 @@ export default function CopingActionGuideScreen() {
         }, 1000);
     };
 
+    const estimateSpeechDurationMs = (text: string) => {
+        const words = text.trim().split(/\s+/).filter(Boolean).length;
+        const estimated = words * 700 + 1200;
+        return Math.max(1800, Math.min(estimated, 7000));
+    };
+
+    const runCountdownAfterCoach = (seconds: number, onComplete: () => void, coachLine: string) => {
+        const delayMs = voiceGuidanceEnabled ? estimateSpeechDurationMs(coachLine) + 450 : 0;
+
+        if (delayMs <= 0) {
+            runCountdown(seconds, onComplete);
+            return;
+        }
+
+        clearDelayedCountdown();
+        setCountdown(0);
+        delayedCountdownRef.current = setTimeout(() => {
+            runCountdown(seconds, onComplete);
+        }, delayMs);
+    };
+
     const runBoxBetween = (currentCycle: number) => {
         setPhase('between');
 
-        if (currentCycle === 1) {
-            setCoachText("Nice. Let's do this one more.");
-        } else {
-            setCoachText("Great. Let's do this one more last time.");
-        }
+        const betweenLine =
+            currentCycle === 1
+                ? "Nice. Let's do this one more."
+                : "Great. Let's do this one more last time.";
 
-        runCountdown(3, () => runBreathingInhale(currentCycle + 1));
+        setCoachText(betweenLine);
+        runCountdownAfterCoach(3, () => runBreathingInhale(currentCycle + 1), betweenLine);
     };
 
     const run478Between = (currentCycle: number) => {
         setPhase('between');
-        setCoachText(currentCycle === 1 ? 'Beautiful. One more calm wave.' : 'Final wave. Slow and steady.');
-        runCountdown(2, () => runBreathingInhale(currentCycle + 1));
+        const betweenLine = currentCycle === 1 ? 'Beautiful. One more calm wave.' : 'Final wave. Slow and steady.';
+        setCoachText(betweenLine);
+        runCountdownAfterCoach(2, () => runBreathingInhale(currentCycle + 1), betweenLine);
+    };
+
+    const runBoxInhaleToExhalePause = (currentCycle: number) => {
+        setPhase('hold');
+        setCoachText('Hold briefly...');
+        animateCircle(1.08, 1000);
+        runCountdown(1, () => runBreathingExhale(currentCycle));
     };
 
     const runBreathingExhale = (currentCycle: number) => {
@@ -334,7 +467,7 @@ export default function CopingActionGuideScreen() {
             if (mode === '478') {
                 runBreathingHold(targetCycle);
             } else {
-                runBreathingExhale(targetCycle);
+                runBoxInhaleToExhalePause(targetCycle);
             }
         });
     };
@@ -371,8 +504,9 @@ export default function CopingActionGuideScreen() {
         runCountdown(5, () => {
             if (roundIndex < MUSCLE_GROUPS.length - 1) {
                 setPhase('between');
-                setCoachText(PMR_MESSAGES[roundIndex % PMR_MESSAGES.length]);
-                runCountdown(3, () => runPmrTense(roundIndex + 1));
+                const betweenLine = PMR_MESSAGES[roundIndex % PMR_MESSAGES.length];
+                setCoachText(betweenLine);
+                runCountdownAfterCoach(3, () => runPmrTense(roundIndex + 1), betweenLine);
                 return;
             }
 
@@ -506,8 +640,12 @@ export default function CopingActionGuideScreen() {
         runBreathingInhale(1);
     };
 
-    const resetGuidedSession = () => {
+    const resetGuidedSession = async () => {
         clearRunningTimer();
+        if (isVoiceListening) {
+            await stopVoiceListening();
+        }
+        await stopVoicePlayback();
         setSessionState('idle');
         setCycle(1);
         setCompletionChoice(null);
@@ -580,6 +718,15 @@ export default function CopingActionGuideScreen() {
             setIsSavingResult(false);
         }
     };
+
+    const handleGroundingVoiceInput = useCallback(async () => {
+        if (isVoiceListening) {
+            await stopVoiceListening();
+            return;
+        }
+        await stopVoicePlayback();
+        await startVoiceListening();
+    }, [isVoiceListening, startVoiceListening, stopVoiceListening, stopVoicePlayback]);
 
     const breathingScale = breathAnim.interpolate({
         inputRange: [0, 1],
@@ -683,6 +830,32 @@ export default function CopingActionGuideScreen() {
                             ) : null}
                             <Text style={styles.breathingCoachText}>{coachText}</Text>
 
+                            <View style={styles.voiceControlRow}>
+                                <Pressable
+                                    style={[
+                                        styles.voiceToggleChip,
+                                        voiceGuidanceEnabled ? styles.voiceToggleChipActive : null,
+                                    ]}
+                                    onPress={() => setVoiceGuidanceEnabled((prev) => !prev)}
+                                >
+                                    <Text style={styles.voiceToggleChipText}>
+                                        {voiceGuidanceEnabled ? 'Voice Coach On' : 'Voice Coach Off'}
+                                    </Text>
+                                </Pressable>
+                                <Pressable
+                                    style={styles.voiceReplayChip}
+                                    onPress={() => speakText(coachText)}
+                                >
+                                    <Text style={styles.voiceReplayChipText}>Replay Prompt</Text>
+                                </Pressable>
+                            </View>
+                            {voiceOutputState === 'speaking' ? (
+                                <Text style={styles.voiceStatusText}>Voice coach speaking...</Text>
+                            ) : null}
+                            {voiceInputError ? (
+                                <Text style={styles.voiceErrorText}>{voiceInputError}</Text>
+                            ) : null}
+
                             {mode === 'color-hunt' ? (
                                 <View style={styles.colorProgressRow}>
                                     {COLOR_HUNT_ROUNDS.map((round, index) => {
@@ -714,6 +887,18 @@ export default function CopingActionGuideScreen() {
                                         onChangeText={setCurrentItemInput}
                                         editable={!isSavingResult}
                                     />
+                                    <Pressable
+                                        style={[
+                                            styles.groundingMicButton,
+                                            isVoiceListening ? styles.groundingMicButtonActive : null,
+                                        ]}
+                                        disabled={isSavingResult}
+                                        onPress={handleGroundingVoiceInput}
+                                    >
+                                        <Text style={styles.groundingMicButtonText}>
+                                            {isVoiceListening ? 'Listening...' : 'Voice'}
+                                        </Text>
+                                    </Pressable>
                                     <Pressable
                                         style={[
                                             styles.groundingAddButton,
@@ -974,6 +1159,20 @@ export default function CopingActionGuideScreen() {
                             <View style={styles.stepCard}>
                                 <Text style={styles.stepLabel}>Current Step</Text>
                                 <Text style={styles.stepText}>{action.steps[stepIndex]}</Text>
+                                <View style={styles.stepVoiceRow}>
+                                    <Pressable
+                                        style={styles.stepVoiceButton}
+                                        onPress={() => speakText(action.steps[stepIndex])}
+                                    >
+                                        <Text style={styles.stepVoiceButtonText}>Read Step</Text>
+                                    </Pressable>
+                                    <Pressable
+                                        style={styles.stepVoiceButton}
+                                        onPress={() => stopVoicePlayback()}
+                                    >
+                                        <Text style={styles.stepVoiceButtonText}>Stop Voice</Text>
+                                    </Pressable>
+                                </View>
                             </View>
 
                             <View style={styles.controlsRow}>
@@ -1127,6 +1326,63 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginBottom: 16,
         minHeight: 44,
+    },
+    voiceControlRow: {
+        width: '100%',
+        flexDirection: 'row',
+        gap: 8,
+        marginBottom: 12,
+    },
+    voiceToggleChip: {
+        flex: 1,
+        borderWidth: 1,
+        borderColor: 'rgba(145, 206, 255, 0.4)',
+        backgroundColor: 'rgba(145, 206, 255, 0.12)',
+        borderRadius: 16,
+        paddingVertical: 8,
+        paddingHorizontal: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    voiceToggleChipActive: {
+        borderColor: 'rgba(145, 206, 255, 0.75)',
+        backgroundColor: 'rgba(120, 181, 255, 0.25)',
+    },
+    voiceToggleChipText: {
+        color: '#EAF7FF',
+        fontSize: 11,
+        fontWeight: '700',
+    },
+    voiceReplayChip: {
+        borderWidth: 1,
+        borderColor: 'rgba(188, 174, 255, 0.55)',
+        backgroundColor: 'rgba(128, 97, 255, 0.25)',
+        borderRadius: 16,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    voiceReplayChipText: {
+        color: '#FFFFFF',
+        fontSize: 11,
+        fontWeight: '700',
+    },
+    voiceStatusText: {
+        width: '100%',
+        color: '#ACE9FF',
+        fontSize: 12,
+        fontWeight: '600',
+        marginBottom: 8,
+        textAlign: 'left',
+    },
+    voiceErrorText: {
+        width: '100%',
+        color: '#FF9FAE',
+        fontSize: 12,
+        fontWeight: '600',
+        marginBottom: 8,
+        textAlign: 'left',
     },
     ambienceBlock: {
         width: '100%',
@@ -1359,6 +1615,24 @@ const styles = StyleSheet.create({
         lineHeight: 24,
         fontWeight: '500',
     },
+    stepVoiceRow: {
+        marginTop: 12,
+        flexDirection: 'row',
+        gap: 8,
+    },
+    stepVoiceButton: {
+        borderWidth: 1,
+        borderColor: 'rgba(197, 185, 255, 0.5)',
+        backgroundColor: 'rgba(110, 82, 240, 0.28)',
+        borderRadius: 10,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+    },
+    stepVoiceButtonText: {
+        color: '#FFFFFF',
+        fontSize: 12,
+        fontWeight: '700',
+    },
     controlsRow: {
         flexDirection: 'row',
         gap: 10,
@@ -1398,6 +1672,24 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255, 255, 255, 0.08)',
         fontSize: 14,
         fontWeight: '500',
+    },
+    groundingMicButton: {
+        paddingHorizontal: 14,
+        borderRadius: 8,
+        backgroundColor: 'rgba(117, 176, 255, 0.28)',
+        borderWidth: 1,
+        borderColor: 'rgba(156, 201, 255, 0.55)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    groundingMicButtonActive: {
+        borderColor: 'rgba(255, 156, 156, 0.9)',
+        backgroundColor: 'rgba(255, 108, 108, 0.32)',
+    },
+    groundingMicButtonText: {
+        color: '#FFFFFF',
+        fontWeight: '700',
+        fontSize: 12,
     },
     groundingAddButton: {
         paddingHorizontal: 16,

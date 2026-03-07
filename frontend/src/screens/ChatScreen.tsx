@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
     View,
     Text,
@@ -9,11 +9,14 @@ import {
     SafeAreaView,
     StatusBar,
     Linking,
+    Animated,
+    Easing,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LinearGradient from 'react-native-linear-gradient';
 import apiClient from '../api/client';
 import { useCrisis } from '../context/CrisisContext';
+import { useVoiceInput, useVoiceOutput } from '../hooks/useVoice';
 
 type ChatMessage = {
     id: string;
@@ -61,7 +64,212 @@ export default function ChatScreen() {
     const [isSending, setIsSending] = useState(false);
     const [latestAnalysis, setLatestAnalysis] = useState<EmotionAnalysis | null>(null);
     const [crisisData, setCrisisData] = useState<CrisisData>({ detected: false, helplines: [] });
+    const [enableTts, setEnableTts] = useState(true);
     const showConversation = messages.length > 1;
+
+    // Voice input/output hooks
+    const voiceInput = useVoiceInput();
+    const voiceOutput = useVoiceOutput();
+    const isListening = voiceInput.isListening;
+    const isSpeaking = voiceOutput.state === 'speaking';
+    const isOrbIdle = !isListening && !isSpeaking;
+    
+    // Mic button animation
+    const [micPulseAnim] = useState(new Animated.Value(1));
+    const [orbIdleGlowAnim] = useState(new Animated.Value(0));
+    const [orbListeningRingAnim] = useState(new Animated.Value(0));
+    const [orbWaveAnim] = useState(new Animated.Value(0));
+    const [orbPinkWaveAnim] = useState(new Animated.Value(0));
+
+    // Animate mic button when listening
+    useEffect(() => {
+        if (isListening) {
+            Animated.loop(
+                Animated.sequence([
+                    Animated.timing(micPulseAnim, {
+                        toValue: 1.2,
+                        duration: 500,
+                        useNativeDriver: false,
+                    }),
+                    Animated.timing(micPulseAnim, {
+                        toValue: 1,
+                        duration: 500,
+                        useNativeDriver: false,
+                    }),
+                ])
+            ).start();
+        } else {
+            micPulseAnim.setValue(1);
+        }
+    }, [isListening, micPulseAnim]);
+
+    // Idle orb glow animation
+    useEffect(() => {
+        if (!isOrbIdle) return;
+
+        const loop = Animated.loop(
+            Animated.sequence([
+                Animated.timing(orbIdleGlowAnim, {
+                    toValue: 1,
+                    duration: 1800,
+                    easing: Easing.inOut(Easing.sin),
+                    useNativeDriver: false,
+                }),
+                Animated.timing(orbIdleGlowAnim, {
+                    toValue: 0,
+                    duration: 1800,
+                    easing: Easing.inOut(Easing.sin),
+                    useNativeDriver: false,
+                }),
+            ])
+        );
+        loop.start();
+
+        return () => {
+            loop.stop();
+        };
+    }, [isOrbIdle, orbIdleGlowAnim]);
+
+    // Listening ring pulse animation
+    useEffect(() => {
+        if (!isListening) {
+            orbListeningRingAnim.setValue(0);
+            return;
+        }
+
+        const loop = Animated.loop(
+            Animated.timing(orbListeningRingAnim, {
+                toValue: 1,
+                duration: 1200,
+                easing: Easing.out(Easing.quad),
+                useNativeDriver: false,
+            })
+        );
+        loop.start();
+
+        return () => {
+            loop.stop();
+            orbListeningRingAnim.setValue(0);
+        };
+    }, [isListening, orbListeningRingAnim]);
+
+    // Speaking waveform animation
+    useEffect(() => {
+        if (!isSpeaking) {
+            orbWaveAnim.setValue(0);
+            return;
+        }
+
+        const loop = Animated.loop(
+            Animated.sequence([
+                Animated.timing(orbWaveAnim, {
+                    toValue: 1,
+                    duration: 320,
+                    easing: Easing.inOut(Easing.ease),
+                    useNativeDriver: false,
+                }),
+                Animated.timing(orbWaveAnim, {
+                    toValue: 0,
+                    duration: 320,
+                    easing: Easing.inOut(Easing.ease),
+                    useNativeDriver: false,
+                }),
+            ])
+        );
+        loop.start();
+
+        return () => {
+            loop.stop();
+            orbWaveAnim.setValue(0);
+        };
+    }, [isSpeaking, orbWaveAnim]);
+
+    // Outer pink aura waveform animation
+    useEffect(() => {
+        const duration = isListening ? 560 : isSpeaking ? 720 : 1800;
+        const loop = Animated.loop(
+            Animated.sequence([
+                Animated.timing(orbPinkWaveAnim, {
+                    toValue: 1,
+                    duration,
+                    easing: Easing.inOut(Easing.sin),
+                    useNativeDriver: false,
+                }),
+                Animated.timing(orbPinkWaveAnim, {
+                    toValue: 0,
+                    duration,
+                    easing: Easing.inOut(Easing.sin),
+                    useNativeDriver: false,
+                }),
+            ])
+        );
+        loop.start();
+
+        return () => {
+            loop.stop();
+        };
+    }, [isListening, isSpeaking, orbPinkWaveAnim]);
+
+    const orbIdleScale = orbIdleGlowAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [1, 1.03],
+    });
+    const orbIdleOpacity = orbIdleGlowAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0.75, 1],
+    });
+    const listeningRingScale = orbListeningRingAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [1, 1.22],
+    });
+    const listeningRingOpacity = orbListeningRingAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0.7, 0],
+    });
+    const waveBar1Height = orbWaveAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [8, 20],
+    });
+    const waveBar2Height = orbWaveAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [12, 30],
+    });
+    const waveBar3Height = orbWaveAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [18, 12],
+    });
+    const waveBar4Height = orbWaveAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [24, 36],
+    });
+    const waveBar5Height = orbWaveAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [18, 10],
+    });
+    const waveBar6Height = orbWaveAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [12, 28],
+    });
+    const waveBar7Height = orbWaveAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [8, 18],
+    });
+    const pinkWaveScaleX = orbPinkWaveAnim.interpolate({
+        inputRange: [0, 0.5, 1],
+        outputRange: [1, 1.12, 0.96],
+    });
+    const pinkWaveScaleY = orbPinkWaveAnim.interpolate({
+        inputRange: [0, 0.5, 1],
+        outputRange: [1, 0.9, 1.08],
+    });
+    const pinkWaveOpacity = orbPinkWaveAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0.24, 0.5],
+    });
+    const pinkWaveRotate = orbPinkWaveAnim.interpolate({
+        inputRange: [0, 0.5, 1],
+        outputRange: ['-2deg', '2deg', '-2deg'],
+    });
 
     useEffect(() => {
         const initializeSession = async () => {
@@ -82,10 +290,23 @@ export default function ChatScreen() {
         initializeSession();
     }, []);
 
-    const sendMessage = async () => {
-        if (!inputText.trim() || isSending) return;
+    // Auto-send voice transcript when captured
+    useEffect(() => {
+        if (voiceInput.transcript && voiceInput.state === 'processing' && !isSending) {
+            setInputText(voiceInput.transcript);
+            // Delay to allow state update before sending
+            const timer = setTimeout(() => {
+                sendMessageWithText(voiceInput.transcript);
+                voiceInput.clearTranscript();
+            }, 100);
+            return () => clearTimeout(timer);
+        }
+    }, [voiceInput.transcript, voiceInput.state, isSending]);
 
-        const userMsg = { id: Date.now().toString(), text: inputText.trim(), sender: 'user' as const };
+    const sendMessageWithText = async (text: string) => {
+        if (!text.trim() || isSending) return;
+
+        const userMsg = { id: Date.now().toString(), text: text.trim(), sender: 'user' as const };
         setMessages((prev) => [...prev, userMsg]);
         setInputText('');
         setIsSending(true);
@@ -97,12 +318,22 @@ export default function ChatScreen() {
                 sessionId,
             });
 
+            const aiReply = response.data?.reply || "I'm here with you. Could you share a bit more?";
             const aiMsg = {
                 id: (Date.now() + 1).toString(),
-                text: response.data?.reply || "I'm here with you. Could you share a bit more?",
+                text: aiReply,
                 sender: 'ai' as const,
             };
             setMessages((prev) => [...prev, aiMsg]);
+
+            // Play TTS if enabled
+            if (enableTts) {
+                try {
+                    await voiceOutput.speak(aiReply);
+                } catch (err) {
+                    console.warn('TTS failed silently, continuing:', err);
+                }
+            }
 
             if (response.data?.analysis) {
                 setLatestAnalysis({
@@ -117,9 +348,8 @@ export default function ChatScreen() {
                     detected: true,
                     helplines: response.data?.helplines || [],
                 });
-                setCrisisAlert(true); // Trigger blinking dashboard tab
+                setCrisisAlert(true);
                 
-                // Add crisis resources card as a separate message
                 const crisisMsg = {
                     id: (Date.now() + 2).toString(),
                     text: '',
@@ -140,6 +370,18 @@ export default function ChatScreen() {
             setIsSending(false);
         }
     };
+
+    const sendMessage = async () => {
+        await sendMessageWithText(inputText);
+    };
+
+    const handleMicPress = useCallback(async () => {
+        if (voiceInput.isListening) {
+            await voiceInput.stopListening();
+        } else {
+            await voiceInput.startListening();
+        }
+    }, [voiceInput]);
 
     return (
         <View style={styles.container}>
@@ -214,17 +456,67 @@ export default function ChatScreen() {
                 <Text style={styles.headerSubTitle}>Go ahead, I'm ready to assist</Text>
 
                 <View style={styles.heroArea}>
-                    <View style={styles.orbAuraPrimary} />
+                    <Animated.View style={[styles.orbAuraPrimary, { opacity: orbIdleOpacity }]} />
                     <View style={styles.orbAuraSecondary} />
-                    <View style={styles.orbAuraTertiary} />
-                    <View style={styles.orbOuter}>
+                    <Animated.View
+                        style={[
+                            styles.orbAuraTertiary,
+                            {
+                                opacity: pinkWaveOpacity,
+                                transform: [
+                                    { scaleX: pinkWaveScaleX },
+                                    { scaleY: pinkWaveScaleY },
+                                    { rotate: pinkWaveRotate },
+                                ],
+                            },
+                        ]}
+                    >
                         <LinearGradient
-                            colors={['#63E7FF', '#375DFF', '#7D43FF', '#FF5FCB']}
+                            colors={['rgba(255, 128, 218, 0.5)', 'rgba(202, 108, 255, 0.22)', 'rgba(255, 113, 208, 0.42)']}
+                            start={{ x: 0.15, y: 0.1 }}
+                            end={{ x: 0.92, y: 0.95 }}
+                            style={styles.orbAuraTertiaryGradient}
+                        />
+                    </Animated.View>
+
+                    {isListening ? (
+                        <Animated.View
+                            style={[
+                                styles.orbListeningRing,
+                                { transform: [{ scale: listeningRingScale }], opacity: listeningRingOpacity },
+                            ]}
+                        />
+                    ) : null}
+
+                    <Animated.View style={[styles.orbOuter, { transform: [{ scale: orbIdleScale }] }]}>
+                        <LinearGradient
+                            colors={
+                                isListening
+                                    ? ['#7AF2FF', '#3F88FF', '#8354FF', '#FF6A9F']
+                                    : isSpeaking
+                                      ? ['#89FFD1', '#45E0B3', '#4AB8FF', '#7E72FF']
+                                      : ['#63E7FF', '#375DFF', '#7D43FF', '#FF5FCB']
+                            }
                             start={{ x: 0.05, y: 0.1 }}
                             end={{ x: 0.95, y: 0.9 }}
                             style={styles.orbCore}
                         />
-                    </View>
+                        {isSpeaking ? (
+                            <View style={styles.orbWaveContainer}>
+                                <Animated.View style={[styles.orbWaveBar, styles.orbWaveBarOuter, { height: waveBar1Height }]} />
+                                <Animated.View style={[styles.orbWaveBar, styles.orbWaveBarInner, { height: waveBar2Height }]} />
+                                <Animated.View style={[styles.orbWaveBar, { height: waveBar3Height }]} />
+                                <Animated.View style={[styles.orbWaveBar, styles.orbWaveBarCenter, { height: waveBar4Height }]} />
+                                <Animated.View style={[styles.orbWaveBar, { height: waveBar5Height }]} />
+                                <Animated.View style={[styles.orbWaveBar, styles.orbWaveBarInner, { height: waveBar6Height }]} />
+                                <Animated.View style={[styles.orbWaveBar, styles.orbWaveBarOuter, { height: waveBar7Height }]} />
+                            </View>
+                        ) : null}
+                    </Animated.View>
+
+                    <Text style={styles.orbStateLabel}>
+                        {isListening ? 'Listening' : isSpeaking ? 'Speaking' : 'Idle'}
+                    </Text>
                     {!showConversation ? (
                         <Text style={styles.heroQuestion}>
                             How can I <Text style={styles.heroQuestionStrong}>support</Text> you today?
@@ -382,26 +674,81 @@ export default function ChatScreen() {
                             end={{ x: 1, y: 1 }}
                             style={styles.inputGlassEdge}
                         />
-                        <Pressable style={styles.micButton}>
-                            <LinearGradient
-                                colors={['#FF78D7', '#A25BFF', '#7B56FF']}
-                                start={{ x: 0.15, y: 0.1 }}
-                                end={{ x: 0.9, y: 1 }}
-                                style={styles.micButtonGradient}
-                            >
-                                <Text style={styles.micButtonText}>Mic</Text>
-                            </LinearGradient>
+                        {/* Mic Button */}
+                        <Pressable
+                            style={[styles.micButton, isListening && styles.micButtonActive]}
+                            onPress={handleMicPress}
+                            disabled={isSending}
+                        >
+                            <Animated.View style={{ transform: [{ scale: micPulseAnim }] }}>
+                                <LinearGradient
+                                    colors={
+                                        isListening
+                                            ? ['#FF6B6B', '#FF5252', '#FF3030']
+                                            : ['#FF78D7', '#A25BFF', '#7B56FF']
+                                    }
+                                    start={{ x: 0.15, y: 0.1 }}
+                                    end={{ x: 0.9, y: 1 }}
+                                    style={styles.micButtonGradient}
+                                >
+                                    <Text style={styles.micButtonText}>
+                                        {isListening ? '🎤' : '🎙'}
+                                    </Text>
+                                </LinearGradient>
+                            </Animated.View>
+                            {isListening && <View style={styles.listeningIndicator} />}
                         </Pressable>
+
+                        {/* Voice Status */}
+                        {(voiceInput.isListening || voiceInput.state === 'processing') && (
+                            <View style={styles.voiceStatusBadge}>
+                                <Text style={styles.voiceStatusText}>
+                                    {voiceInput.isListening ? '🎧 Listening...' : '✓ Got it'}
+                                </Text>
+                            </View>
+                        )}
+
+                        {voiceInput.error && (
+                            <View style={styles.voiceErrorBadge}>
+                                <Text style={styles.voiceErrorText}>⚠ {voiceInput.error}</Text>
+                            </View>
+                        )}
+
+                        {/* Text Input */}
                         <TextInput
                             style={styles.input}
                             value={inputText}
                             onChangeText={setInputText}
-                            placeholder="Speak question or press the mic"
+                            placeholder={
+                                voiceInput.isListening
+                                    ? 'Listening for your voice...'
+                                    : 'Speak or type your thoughts'
+                            }
                             placeholderTextColor="rgba(255,255,255,0.5)"
                             onSubmitEditing={sendMessage}
                             returnKeyType="send"
+                            editable={!voiceInput.isListening && !isSending}
                         />
-                        <Pressable style={styles.sendButton} onPress={sendMessage} disabled={isSending}>
+
+                        {/* TTS Toggle */}
+                        <Pressable
+                            style={[styles.ttsButton, enableTts && styles.ttsButtonActive]}
+                            onPress={() => setEnableTts(!enableTts)}
+                        >
+                            <LinearGradient
+                                colors={
+                                    enableTts ? ['#34D399', '#10B981', '#059669'] : ['rgba(52, 211, 153, 0.4)', 'rgba(16, 185, 129, 0.3)']
+                                }
+                                start={{ x: 0.2, y: 0.1 }}
+                                end={{ x: 0.9, y: 0.9 }}
+                                style={styles.ttsButtonGradient}
+                            >
+                                <Text style={styles.ttsButtonText}>{enableTts ? '🔊' : '🔇'}</Text>
+                            </LinearGradient>
+                        </Pressable>
+
+                        {/* Send Button */}
+                        <Pressable style={styles.sendButton} onPress={sendMessage} disabled={isSending || !inputText.trim()}>
                             <LinearGradient
                                 colors={['#955CFF', '#6E4CE8']}
                                 start={{ x: 0.2, y: 0.1 }}
@@ -560,7 +907,22 @@ const styles = StyleSheet.create({
         width: 196,
         height: 196,
         borderRadius: 98,
-        backgroundColor: 'rgba(255, 114, 213, 0.05)',
+        overflow: 'hidden',
+    },
+    orbAuraTertiaryGradient: {
+        width: '100%',
+        height: '100%',
+        borderRadius: 98,
+    },
+    orbListeningRing: {
+        position: 'absolute',
+        top: 0,
+        width: 214,
+        height: 214,
+        borderRadius: 107,
+        borderWidth: 2,
+        borderColor: 'rgba(122, 242, 255, 0.9)',
+        backgroundColor: 'rgba(122, 242, 255, 0.12)',
     },
     orbOuter: {
         width: 200,
@@ -583,6 +945,43 @@ const styles = StyleSheet.create({
         borderRadius: 94,
         borderWidth: 2,
         borderColor: 'rgba(232, 241, 255, 0.34)',
+    },
+    orbWaveContainer: {
+        position: 'absolute',
+        bottom: 36,
+        left: 0,
+        right: 0,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'flex-end',
+        gap: 6,
+    },
+    orbWaveBar: {
+        width: 8,
+        borderRadius: 8,
+        backgroundColor: 'rgba(238, 255, 246, 0.95)',
+        shadowColor: '#75FFC3',
+        shadowOpacity: 0.6,
+        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 0 },
+    },
+    orbWaveBarCenter: {
+        width: 9,
+        backgroundColor: 'rgba(255, 255, 255, 0.98)',
+    },
+    orbWaveBarInner: {
+        opacity: 0.9,
+    },
+    orbWaveBarOuter: {
+        opacity: 0.75,
+    },
+    orbStateLabel: {
+        marginTop: 12,
+        color: 'rgba(223, 238, 255, 0.86)',
+        fontSize: 12,
+        fontWeight: '700',
+        letterSpacing: 0.6,
+        textTransform: 'uppercase',
     },
     heroQuestion: {
         marginTop: 30,
@@ -904,6 +1303,77 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         lineHeight: 15,
         fontStyle: 'italic',
+    },
+    // Voice UI Styles
+    micButtonActive: {
+        borderWidth: 2,
+        borderColor: 'rgba(255, 107, 107, 0.6)',
+    },
+    listeningIndicator: {
+        position: 'absolute',
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#FF6B6B',
+        top: -8,
+        right: -8,
+    },
+    voiceStatusBadge: {
+        position: 'absolute',
+        top: -32,
+        left: 12,
+        backgroundColor: 'rgba(100, 220, 155, 0.25)',
+        borderWidth: 1,
+        borderColor: 'rgba(100, 220, 155, 0.5)',
+        borderRadius: 12,
+        paddingVertical: 4,
+        paddingHorizontal: 12,
+    },
+    voiceStatusText: {
+        fontSize: 11,
+        color: '#64DC9B',
+        fontWeight: '600',
+    },
+    voiceErrorBadge: {
+        position: 'absolute',
+        top: -32,
+        left: 12,
+        backgroundColor: 'rgba(255, 107, 107, 0.25)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 107, 107, 0.5)',
+        borderRadius: 12,
+        paddingVertical: 4,
+        paddingHorizontal: 12,
+    },
+    voiceErrorText: {
+        fontSize: 11,
+        color: '#FF6B6B',
+        fontWeight: '600',
+    },
+    ttsButton: {
+        width: 46,
+        height: 46,
+        borderRadius: 12,
+        backgroundColor: 'rgba(52, 211, 153, 0.15)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(52, 211, 153, 0.3)',
+        marginHorizontal: 8,
+    },
+    ttsButtonActive: {
+        borderColor: 'rgba(52, 211, 153, 0.7)',
+        backgroundColor: 'rgba(52, 211, 153, 0.25)',
+    },
+    ttsButtonGradient: {
+        width: '100%',
+        height: '100%',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 11,
+    },
+    ttsButtonText: {
+        fontSize: 20,
     },
 });
 
