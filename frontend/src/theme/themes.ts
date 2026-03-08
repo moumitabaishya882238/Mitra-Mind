@@ -1,4 +1,4 @@
-export type ThemeName = 'mitra-night' | 'mitra-light' | 'aurora' | 'matrix-dark';
+export type ThemeName = 'mitra-night' | 'mitra-light' | 'aurora' | 'matrix-dark' | 'matrix-white';
 
 export type AppTheme = {
     id: ThemeName;
@@ -110,6 +110,28 @@ export const APP_THEMES: Record<ThemeName, AppTheme> = {
             tabInactive: '#8B8B8B',
             tabBorder: 'rgba(224, 224, 224, 0.10)',
             danger: '#FF6B6B',
+        },
+    },
+    'matrix-white': {
+        id: 'matrix-white',
+        label: 'Matrix White',
+        statusBarStyle: 'dark-content',
+        gradients: {
+            main: ['#F8F8F8', '#F8F8F8', '#F8F8F8', '#F8F8F8'],
+            veil: ['transparent', 'transparent', 'transparent'],
+        },
+        colors: {
+            screenBase: '#F8F8F8',
+            textPrimary: '#000000',
+            textSecondary: 'rgba(0, 0, 0, 0.65)',
+            cardBg: 'rgba(241, 241, 241, 0.8)',
+            borderSoft: 'rgba(218, 220, 224, 0.6)',
+            accent: '#1F7FFF',
+            tabBg: '#FFFFFF',
+            tabActive: '#1F7FFF',
+            tabInactive: '#9AA0A6',
+            tabBorder: 'rgba(31, 127, 255, 0.12)',
+            danger: '#D33B27',
         },
     },
 };

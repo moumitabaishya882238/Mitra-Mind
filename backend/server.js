@@ -1,17 +1,30 @@
 const express = require('express');
+const http = require('http');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const session = require('express-session');
 const passport = require('passport');
+const { Server } = require('socket.io');
 
 dotenv.config();
 
 const app = express();
+const httpServer = http.createServer(app);
+
+const corsOrigin = process.env.FRONTEND_URL || '*';
+const io = new Server(httpServer, {
+    cors: {
+        origin: corsOrigin,
+        credentials: true,
+    },
+});
+
+app.set('io', io);
 
 // Middleware
 app.use(cors({
-    origin: process.env.FRONTEND_URL || '*',
+    origin: corsOrigin,
     credentials: true
 }));
 app.use(express.json());
@@ -44,13 +57,26 @@ mongoose.connect(MONGODB_URI, {
 // Define Routes
 // TODO: app.use('/auth', require('./routes/auth'));
 app.use('/ai', require('./routes/ai'));
+app.use('/community', require('./routes/community'));
 
 // Root Endpoint
 app.get('/', (req, res) => {
     res.json({ message: 'Mitra-Mind Backend is running' });
 });
 
+io.on('connection', (socket) => {
+    const initialUserId = socket.handshake?.auth?.userId || socket.handshake?.query?.userId;
+    if (initialUserId) {
+        socket.join(`user:${String(initialUserId)}`);
+    }
+
+    socket.on('register', ({ userId }) => {
+        if (!userId) return;
+        socket.join(`user:${String(userId)}`);
+    });
+});
+
 const PORT = process.env.PORT || 5001; // Using 5001 to avoid conflict with Matri
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
     console.log(`Mitra-Mind Server running on port ${PORT}`);
 });

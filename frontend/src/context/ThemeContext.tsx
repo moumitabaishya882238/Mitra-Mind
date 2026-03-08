@@ -3,6 +3,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { APP_THEMES, AppTheme, DEFAULT_THEME, ThemeName } from '../theme/themes';
 
 const STORAGE_THEME_KEY = 'mitra-theme-name';
+const LEGACY_THEME_MAP: Record<string, ThemeName> = {
+    'gemini-white': 'matrix-white',
+};
 
 type ThemeContextValue = {
     themeName: ThemeName;
@@ -23,8 +26,24 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         const load = async () => {
             try {
                 const stored = await AsyncStorage.getItem(STORAGE_THEME_KEY);
-                if (stored && stored in APP_THEMES) {
-                    setThemeNameState(stored as ThemeName);
+                if (!stored) {
+                    return;
+                }
+
+                const mapped = LEGACY_THEME_MAP[stored] ?? stored;
+                if (mapped in APP_THEMES) {
+                    const validTheme = mapped as ThemeName;
+                    setThemeNameState(validTheme);
+                    if (mapped !== stored) {
+                        AsyncStorage.setItem(STORAGE_THEME_KEY, validTheme).catch((error) => {
+                            console.warn('Failed to migrate legacy theme preference', error);
+                        });
+                    }
+                } else {
+                    setThemeNameState(DEFAULT_THEME);
+                    AsyncStorage.setItem(STORAGE_THEME_KEY, DEFAULT_THEME).catch((error) => {
+                        console.warn('Failed to reset invalid theme preference', error);
+                    });
                 }
             } catch (error) {
                 console.warn('Failed to load theme preference', error);
@@ -41,14 +60,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         });
     };
 
-    const value = useMemo(
-        () => ({
-            themeName,
-            theme: APP_THEMES[themeName],
+    const value = useMemo(() => {
+        const safeThemeName = themeName in APP_THEMES ? themeName : DEFAULT_THEME;
+        return {
+            themeName: safeThemeName,
+            theme: APP_THEMES[safeThemeName],
             setThemeName,
-        }),
-        [themeName]
-    );
+        };
+    }, [themeName]);
 
     return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

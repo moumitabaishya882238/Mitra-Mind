@@ -1,13 +1,35 @@
 import React from 'react';
 import { View, Text, Button, StyleSheet, ScrollView } from 'react-native';
 import Video from 'react-native-video';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppTheme } from '../context/ThemeContext';
+
+const STORAGE_SESSION_KEY = 'mh-session-id';
 
 export default function WelcomeScreen({ navigation }: any) {
     const { theme } = useAppTheme();
 
-    const handleStartChat = () => {
-        navigation.replace('MainTabs', { screen: 'MitraChat' });
+    const handleStartChat = async () => {
+        try {
+            // Check if user already has a unique ID
+            let userId = await AsyncStorage.getItem(STORAGE_SESSION_KEY);
+            
+            // If not, create a new unique ID for this device
+            if (!userId) {
+                userId = `session-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+                await AsyncStorage.setItem(STORAGE_SESSION_KEY, userId);
+                console.log('✅ New unique user ID created:', userId);
+            } else {
+                console.log('✅ Existing user ID found:', userId);
+            }
+            
+            // Navigate to the chat screen
+            navigation.replace('MainTabs', { screen: 'MitraChat' });
+        } catch (error) {
+            console.error('Error handling session ID:', error);
+            // Navigate anyway even if there's an error
+            navigation.replace('MainTabs', { screen: 'MitraChat' });
+        }
     };
 
     return (
