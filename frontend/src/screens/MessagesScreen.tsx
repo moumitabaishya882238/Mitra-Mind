@@ -15,6 +15,7 @@ import {
 import MessageBubble from '../components/community/MessageBubble';
 import { useAppTheme } from '../context/ThemeContext';
 import communityService, { ConversationItem, DirectMessageItem, ModerationResult } from '../services/communityService';
+import { connectSocket, disconnectSocket, offNewDirectMessage, onNewDirectMessage } from '../services/socketService';
 
 const STORAGE_SESSION_KEY = 'mh-session-id';
 
@@ -76,13 +77,54 @@ export default function MessagesScreen({ route }: Props) {
         }
     }, [route?.params?.peerId, loadThread]);
 
+    useEffect(() => {
+        let unmounted = false;
+        let cleanupHandler: (() => void) | undefined;
+
+        const setupRealtime = async () => {
+            const sid = await ensureSession();
+            if (unmounted) return;
+
+            connectSocket(sid);
+
+            const handleNewDm = (payload: { directMessage?: DirectMessageItem }) => {
+                const incoming = payload?.directMessage;
+                if (!incoming) return;
+
+                loadConversations();
+
+                if (!peerId) return;
+                if (incoming.senderId !== peerId && incoming.receiverId !== peerId) return;
+
+                setMessages((prev) => {
+                    if (prev.some((item) => item.id === incoming.id)) return prev;
+                    return [...prev, incoming];
+                });
+            };
+
+            onNewDirectMessage(handleNewDm);
+            cleanupHandler = () => offNewDirectMessage(handleNewDm);
+        };
+
+        setupRealtime();
+
+        return () => {
+            unmounted = true;
+            if (cleanupHandler) cleanupHandler();
+            disconnectSocket();
+        };
+    }, [ensureSession, loadConversations, peerId]);
+
     const send = async () => {
         if (!peerId || !inputText.trim()) return;
         try {
             const sid = await ensureSession();
             const response = await communityService.sendDirectMessage(sid, peerId, inputText.trim());
             setModeration(response.moderation);
-            setMessages((prev) => [...prev, response.directMessage]);
+            setMessages((prev) => {
+                if (prev.some((item) => item.id === response.directMessage.id)) return prev;
+                return [...prev, response.directMessage];
+            });
             setInputText('');
             loadConversations();
         } catch (error) {

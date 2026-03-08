@@ -52,7 +52,7 @@ export default function CommunityScreen({ navigation }: any) {
 
             <SafeAreaView style={styles.safeArea}>
                 <Text style={[styles.title, { color: theme.colors.textPrimary }]}>Community Support</Text>
-                <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>Anonymous peer support inspired by TalkLife</Text>
+                <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>Anonymous peer support</Text>
 
                 <View style={[styles.topTabs, { borderColor: theme.colors.borderSoft, backgroundColor: theme.colors.cardBg }]}>
                     {topTabs.map((item) => {

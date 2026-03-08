@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet } from 'react-native';
+import { Animated, StyleSheet, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import Ionicons from '@react-native-vector-icons/ionicons';
 import { useCrisis } from '../context/CrisisContext';
 import { useAppTheme } from '../context/ThemeContext';
 
@@ -19,6 +20,20 @@ import MessagesScreen from '../screens/MessagesScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+
+type IconProps = {
+    name: string;
+    color: string;
+    focused: boolean;
+    showCrisisBadge?: boolean;
+};
+
+const TabIcon = ({ name, color, focused, showCrisisBadge = false }: IconProps) => (
+    <View style={styles.tabIconWrap}>
+        <Ionicons name={name} size={20} color={color} style={{ opacity: focused ? 1 : 0.92 }} />
+        {showCrisisBadge ? <CrisisAlertBadge /> : null}
+    </View>
+);
 
 // Blinking red badge component
 const CrisisAlertBadge = () => {
@@ -83,7 +98,9 @@ const MainTabNavigator = () => {
                 name="Dashboard" 
                 component={DashboardScreen}
                 options={{
-                    tabBarIcon: () => <CrisisAlertBadge />,
+                    tabBarIcon: ({ color, focused }) => (
+                        <TabIcon name={focused ? 'stats-chart' : 'stats-chart-outline'} color={color} focused={focused} showCrisisBadge />
+                    ),
                 }}
             />
             <Tab.Screen 
@@ -91,7 +108,7 @@ const MainTabNavigator = () => {
                 component={ChatScreen} 
                 options={{ 
                     title: 'Chat',
-                    tabBarIcon: () => null,
+                    tabBarIcon: ({ color, focused }) => <TabIcon name={focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline'} color={color} focused={focused} />,
                 }} 
             />
             <Tab.Screen 
@@ -99,21 +116,21 @@ const MainTabNavigator = () => {
                 component={CopingToolkitScreen}
                 options={{
                     title: 'MindSpace',
-                    tabBarIcon: () => null,
+                    tabBarIcon: ({ color, focused }) => <TabIcon name={focused ? 'leaf' : 'leaf-outline'} color={color} focused={focused} />,
                 }}
             />
             <Tab.Screen
                 name="Community"
                 component={CommunityScreen}
                 options={{
-                    tabBarIcon: () => null,
+                    tabBarIcon: ({ color, focused }) => <TabIcon name={focused ? 'people' : 'people-outline'} color={color} focused={focused} />,
                 }}
             />
             <Tab.Screen 
                 name="Settings" 
                 component={SettingsScreen}
                 options={{
-                    tabBarIcon: () => null,
+                    tabBarIcon: ({ color, focused }) => <TabIcon name={focused ? 'settings' : 'settings-outline'} color={color} focused={focused} />,
                 }}
             />
         </Tab.Navigator>
@@ -137,7 +154,16 @@ const AppNavigator = () => {
 };
 
 const styles = StyleSheet.create({
+    tabIconWrap: {
+        position: 'relative',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 18,
+    },
     crisisBadge: {
+        position: 'absolute',
+        top: -2,
+        right: -8,
         width: 10,
         height: 10,
         borderRadius: 5,
@@ -149,7 +175,6 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
         shadowOffset: { width: 0, height: 2 },
         elevation: 5,
-        marginBottom: 4,
     },
 });
 

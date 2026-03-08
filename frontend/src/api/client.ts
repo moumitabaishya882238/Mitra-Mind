@@ -20,7 +20,7 @@ function resolveDevHost(): string {
     return 'localhost';
 }
 
-const BASE_URL = `http://${resolveDevHost()}:${API_PORT}`;
+export const BASE_URL = `http://${resolveDevHost()}:${API_PORT}`;
 
 const apiClient = axios.create({
     baseURL: BASE_URL,

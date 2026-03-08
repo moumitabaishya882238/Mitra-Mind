@@ -414,8 +414,21 @@ router.post('/messages', async (req, res) => {
             moderation,
         });
 
+        const io = req.app.get('io');
+        const messageForSender = serializeMessage(created, senderId);
+        const messageForReceiver = serializeMessage(created, receiverId);
+
+        if (io) {
+            io.to(`user:${String(senderId)}`).emit('dm:new', {
+                directMessage: messageForSender,
+            });
+            io.to(`user:${String(receiverId)}`).emit('dm:new', {
+                directMessage: messageForReceiver,
+            });
+        }
+
         return res.status(201).json({
-            directMessage: serializeMessage(created, senderId),
+            directMessage: messageForSender,
             moderation,
         });
     } catch (error) {
