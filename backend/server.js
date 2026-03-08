@@ -44,6 +44,7 @@ mongoose.connect(MONGODB_URI, {
 // Define Routes
 // TODO: app.use('/auth', require('./routes/auth'));
 app.use('/ai', require('./routes/ai'));
+app.use('/community', require('./routes/community'));
 
 // Root Endpoint
 app.get('/', (req, res) => {

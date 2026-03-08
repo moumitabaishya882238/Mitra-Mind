@@ -12,6 +12,10 @@ import WelcomeScreen from '../screens/WelcomeScreen';
 import CopingToolkitScreen from '../screens/CopingToolkitScreen';
 import CopingActionGuideScreen from '../screens/CopingActionGuideScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import CommunityScreen from '../screens/CommunityScreen';
+import CreatePostScreen from '../screens/CreatePostScreen';
+import PostDetailScreen from '../screens/PostDetailScreen';
+import MessagesScreen from '../screens/MessagesScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -98,6 +102,13 @@ const MainTabNavigator = () => {
                     tabBarIcon: () => null,
                 }}
             />
+            <Tab.Screen
+                name="Community"
+                component={CommunityScreen}
+                options={{
+                    tabBarIcon: () => null,
+                }}
+            />
             <Tab.Screen 
                 name="Settings" 
                 component={SettingsScreen}
@@ -117,6 +128,10 @@ const AppNavigator = () => {
             <Stack.Screen name="Welcome" component={WelcomeScreen} />
             <Stack.Screen name="MainTabs" component={MainTabNavigator} />
             <Stack.Screen name="CopingActionGuide" component={CopingActionGuideScreen} />
+            {/* Community stack routes are separated so posts and DM threads can open over tabs. */}
+            <Stack.Screen name="CreatePost" component={CreatePostScreen} />
+            <Stack.Screen name="PostDetail" component={PostDetailScreen} />
+            <Stack.Screen name="Messages" component={MessagesScreen} />
         </Stack.Navigator>
     );
 };
