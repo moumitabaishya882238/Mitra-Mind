@@ -19,6 +19,7 @@ import apiClient from '../api/client';
 import { copingActions } from '../data/copingActions';
 import { useVoiceInput, useVoiceOutput } from '../hooks/useVoice';
 import { enqueueOfflineSessionMood } from '../offline/offlineEngine';
+import { useAppTheme } from '../context/ThemeContext';
 
 type RouteParams = {
     actionId?: string;
@@ -119,6 +120,7 @@ function mapCompletionChoice(choice: CompletionChoice, mode?: string) {
 
 export default function CopingActionGuideScreen() {
     const navigation = useNavigation<any>();
+    const { theme } = useAppTheme();
     const route = useRoute();
     const params = (route.params as RouteParams) || {};
 
@@ -795,18 +797,18 @@ export default function CopingActionGuideScreen() {
           : `Round ${cycle} of 3`;
 
     return (
-        <View style={styles.container}>
-            <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+        <View style={[styles.container, { backgroundColor: theme.colors.screenBase }]}>
+            <StatusBar translucent backgroundColor="transparent" barStyle={theme.statusBarStyle} />
 
             <View style={styles.backgroundLayer}>
                 <LinearGradient
-                    colors={['#050A22', '#0E0D30', '#1B1240', '#2C1554']}
+                    colors={theme.gradients.main}
                     start={{ x: 0.5, y: 0 }}
                     end={{ x: 0.5, y: 1 }}
                     style={styles.mainGradient}
                 />
                 <LinearGradient
-                    colors={['rgba(95, 129, 255, 0.10)', 'transparent', 'rgba(154, 89, 255, 0.12)']}
+                    colors={theme.gradients.veil}
                     start={{ x: 0.1, y: 0 }}
                     end={{ x: 0.9, y: 1 }}
                     style={styles.gradientVeil}

@@ -1,8 +1,11 @@
 import React from 'react';
 import { View, Text, Button, StyleSheet, ScrollView } from 'react-native';
 import Video from 'react-native-video';
+import { useAppTheme } from '../context/ThemeContext';
 
 export default function WelcomeScreen({ navigation }: any) {
+    const { theme } = useAppTheme();
+
     const handleStartChat = () => {
         navigation.replace('MainTabs', { screen: 'MitraChat' });
     };
@@ -20,14 +23,19 @@ export default function WelcomeScreen({ navigation }: any) {
             />
             
             {/* Overlay for better text readability */}
-            <View style={styles.overlay} />
+            <View
+                style={[
+                    styles.overlay,
+                    { backgroundColor: theme.id === 'mitra-light' ? 'rgba(14, 32, 70, 0.42)' : 'rgba(0,0,0,0.55)' },
+                ]}
+            />
             
             <ScrollView contentContainerStyle={styles.container}>
                 <View style={styles.content}>
                     <Text style={styles.greeting}>
-                        <Text style={styles.gradientStart}>Welcome</Text>{' '}
-                        <Text style={styles.gradientMid}>to</Text>{' '}
-                        <Text style={styles.gradientEnd}>Mitra</Text>
+                        <Text style={[styles.gradientStart, { color: theme.colors.textPrimary }]}>Welcome</Text>{' '}
+                        <Text style={[styles.gradientMid, { color: theme.colors.textSecondary }]}>to</Text>{' '}
+                        <Text style={[styles.gradientEnd, { color: theme.colors.accent }]}>Mitra</Text>
                     </Text>
                     
                     <Text style={styles.message}>
@@ -45,7 +53,7 @@ export default function WelcomeScreen({ navigation }: any) {
                     <Button 
                         title="Start Chatting with Mitra" 
                         onPress={handleStartChat}
-                        color="#5B9BD5"
+                        color={theme.colors.accent}
                     />
                 </View>
             </ScrollView>

@@ -16,6 +16,7 @@ import apiClient from '../api/client';
 import { useCrisis } from '../context/CrisisContext';
 import { copingActions, MoodCategory } from '../data/copingActions';
 import { cacheDashboardInsights, getCachedDashboardInsights, getOfflineQueueCount } from '../offline/offlineEngine';
+import { useAppTheme } from '../context/ThemeContext';
 
 type InsightResponse = {
     latest: {
@@ -103,6 +104,7 @@ function relativeTime(value: string) {
 export default function DashboardScreen() {
     const navigation = useNavigation<any>();
     const { clearCrisisAlert } = useCrisis();
+    const { theme } = useAppTheme();
     const [insights, setInsights] = useState<InsightResponse>(defaultInsights);
     const [loading, setLoading] = useState(false);
     const [pendingSyncCount, setPendingSyncCount] = useState(0);
@@ -175,18 +177,18 @@ export default function DashboardScreen() {
     const upcomingActivities = activityCandidates.filter((item) => item.availability === 'under-development');
 
     return (
-        <View style={styles.container}>
-            <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+        <View style={[styles.container, { backgroundColor: theme.colors.screenBase }]}>
+            <StatusBar translucent backgroundColor="transparent" barStyle={theme.statusBarStyle} />
 
             <View style={styles.backgroundLayer}>
                 <LinearGradient
-                    colors={['#050A22', '#0E0D30', '#1B1240', '#2C1554']}
+                    colors={theme.gradients.main}
                     start={{ x: 0.5, y: 0 }}
                     end={{ x: 0.5, y: 1 }}
                     style={styles.mainGradient}
                 />
                 <LinearGradient
-                    colors={['rgba(95, 129, 255, 0.10)', 'transparent', 'rgba(154, 89, 255, 0.12)']}
+                    colors={theme.gradients.veil}
                     start={{ x: 0.1, y: 0 }}
                     end={{ x: 0.9, y: 1 }}
                     style={styles.gradientVeil}
