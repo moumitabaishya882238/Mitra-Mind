@@ -3,6 +3,7 @@ const router = express.Router();
 const { generateCompanionResponse, analyzeEmotionAndExtractData } = require('../services/geminiService');
 const DailyMoodLog = require('../models/DailyMoodLog');
 const ChatMessage = require('../models/ChatMessage');
+const BehaviorPattern = require('../models/BehaviorPattern');
 
 const HELPLINES = [
     { name: 'India - Tele MANAS', phone: '14416 / 1-800-891-4416', site: 'https://telemanas.mohfw.gov.in' },
@@ -28,6 +29,16 @@ const CRISIS_WORDS = [
     'me quiero morir', 'suicidio', 'autolesion',
     'marna chahta', 'aatmahatya', 'khud ko nuksan', 'मरना चाहता', 'आत्महत्या', 'खुद को नुकसान',
 ];
+
+const TOPIC_KEYWORDS = {
+    exams: ['exam', 'exams', 'test', 'quiz', 'midterm', 'final', 'marks', 'grade', 'study'],
+    assignments: ['assignment', 'deadline', 'project', 'submission', 'homework', 'lab'],
+    relationships: ['friend', 'friends', 'boyfriend', 'girlfriend', 'partner', 'breakup', 'family', 'parents'],
+    sleep: ['sleep', 'insomnia', 'awake', 'tired', 'night', 'rest'],
+    career: ['internship', 'job', 'placement', 'career', 'interview', 'resume'],
+    finances: ['money', 'fees', 'rent', 'bills', 'financial', 'debt'],
+    health: ['health', 'sick', 'headache', 'pain', 'panic', 'anxiety', 'therapy', 'counseling'],
+};
 
 function tokenize(text = '') {
     return text
@@ -108,6 +119,101 @@ function moodEmoji(mood) {
     if (value.includes('stress') || value.includes('anx') || value.includes('angry')) return '😟';
     if (value.includes('sad') || value.includes('depress')) return '😔';
     return '😐';
+}
+
+function getTimeBucket(date = new Date()) {
+    const hour = date.getHours();
+    if (hour >= 5 && hour < 12) return 'morning';
+    if (hour >= 12 && hour < 17) return 'afternoon';
+    if (hour >= 17 && hour < 21) return 'evening';
+    return 'night';
+}
+
+function incrementMapValue(mapObj, key, amount = 1) {
+    const current = Number(mapObj.get(key) || 0);
+    mapObj.set(key, current + amount);
+}
+
+function extractFrequentTopics(message = '') {
+    const lower = String(message).toLowerCase();
+    const topics = [];
+
+    for (const [topic, keywords] of Object.entries(TOPIC_KEYWORDS)) {
+        if (keywords.some((kw) => lower.includes(kw))) {
+            topics.push(topic);
+        }
+    }
+
+    if (!topics.length) {
+        topics.push('general');
+    }
+
+    return topics;
+}
+
+function topEntriesFromMap(mapObj, limit = 3) {
+    return Array.from(mapObj.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, limit)
+        .map(([key, count]) => ({ key, count }));
+}
+
+async function updateBehaviorPattern({ sessionId, moodCategory, stressScore, message }) {
+    let pattern = await BehaviorPattern.findOne({ sessionId });
+    if (!pattern) {
+        pattern = new BehaviorPattern({ sessionId });
+    }
+
+    pattern.messageCount += 1;
+    pattern.lastMoodCategory = moodCategory;
+    pattern.lastStressScore = stressScore;
+    pattern.lastUpdatedAt = new Date();
+
+    incrementMapValue(pattern.moodCounts, moodCategory, 1);
+
+    const timeBucket = getTimeBucket(pattern.lastUpdatedAt);
+    if (stressScore >= 6) {
+        incrementMapValue(pattern.stressTimeCounts, timeBucket, 1);
+    }
+
+    const topics = extractFrequentTopics(message);
+    topics.forEach((topic) => incrementMapValue(pattern.topicCounts, topic, 1));
+
+    await pattern.save();
+    return pattern;
+}
+
+function buildBehaviorSummary(patternDoc) {
+    if (!patternDoc) {
+        return {
+            topMoods: [],
+            stressPeakTime: null,
+            frequentTopics: [],
+            narrative: '',
+        };
+    }
+
+    const topMoods = topEntriesFromMap(patternDoc.moodCounts, 2);
+    const stressTimes = topEntriesFromMap(patternDoc.stressTimeCounts, 1);
+    const frequentTopics = topEntriesFromMap(patternDoc.topicCounts, 3);
+
+    const narrativeParts = [];
+    if (topMoods[0]) {
+        narrativeParts.push(`Most common recent mood: ${topMoods[0].key}`);
+    }
+    if (stressTimes[0]) {
+        narrativeParts.push(`Stress often appears during ${stressTimes[0].key}`);
+    }
+    if (frequentTopics[0]) {
+        narrativeParts.push(`Frequent topic: ${frequentTopics[0].key}`);
+    }
+
+    return {
+        topMoods,
+        stressPeakTime: stressTimes[0]?.key || null,
+        frequentTopics,
+        narrative: narrativeParts.join('. '),
+    };
 }
 
 // @route   POST /ai/analyze-emotion
@@ -217,7 +323,22 @@ router.post('/chat', async (req, res) => {
             sentiment_score: heuristic.score,
         };
 
-        const reply = await generateCompanionResponse(message, emotionContext, language, conversationHistory);
+        const updatedPattern = await updateBehaviorPattern({
+            sessionId,
+            moodCategory,
+            stressScore,
+            message,
+        });
+
+        const behaviorSummary = buildBehaviorSummary(updatedPattern);
+
+        const reply = await generateCompanionResponse(
+            message,
+            emotionContext,
+            language,
+            conversationHistory,
+            behaviorSummary
+        );
 
         await ChatMessage.insertMany([
             {
@@ -261,6 +382,7 @@ router.post('/chat', async (req, res) => {
                 emoji: moodEmoji(moodCategory),
             },
             copingStrategies: copingStrategies({ distress }),
+            behaviorPatterns: behaviorSummary,
             helplines: HELPLINES,
         });
     } catch (error) {
@@ -284,6 +406,8 @@ router.get('/dashboard-insights', async (req, res) => {
             .sort({ createdAt: -1 })
             .limit(5)
             .lean();
+
+        const behaviorPattern = await BehaviorPattern.findOne({ sessionId }).lean();
 
         const latestMood = moodEntries[0] || null;
         const trend = moodEntries
@@ -326,6 +450,7 @@ router.get('/dashboard-insights', async (req, res) => {
                 text: item.text,
                 createdAt: item.createdAt,
             })),
+            behaviorPatterns: buildBehaviorSummary(behaviorPattern),
             helplines: HELPLINES,
         });
     } catch (error) {

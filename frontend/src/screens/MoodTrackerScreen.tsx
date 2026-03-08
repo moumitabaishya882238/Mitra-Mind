@@ -1,8 +1,10 @@
 import React from 'react';
 import { View, Text, Button, StyleSheet, SafeAreaView, StatusBar } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { useAppTheme } from '../context/ThemeContext';
 
 export default function MoodTrackerScreen({ navigation }: any) {
+    const { theme } = useAppTheme();
 
     const handleMoodSelect = (mood: string) => {
         console.log("Selected Mood:", mood);
@@ -11,18 +13,18 @@ export default function MoodTrackerScreen({ navigation }: any) {
     };
 
     return (
-        <View style={styles.container}>
-            <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+        <View style={[styles.container, { backgroundColor: theme.colors.screenBase }]}>
+            <StatusBar translucent backgroundColor="transparent" barStyle={theme.statusBarStyle} />
 
             <View style={styles.backgroundLayer}>
                 <LinearGradient
-                    colors={['#050A22', '#0E0D30', '#1B1240', '#2C1554']}
+                    colors={theme.gradients.main}
                     start={{ x: 0.5, y: 0 }}
                     end={{ x: 0.5, y: 1 }}
                     style={styles.mainGradient}
                 />
                 <LinearGradient
-                    colors={['rgba(95, 129, 255, 0.10)', 'transparent', 'rgba(154, 89, 255, 0.12)']}
+                    colors={theme.gradients.veil}
                     start={{ x: 0.1, y: 0 }}
                     end={{ x: 0.9, y: 1 }}
                     style={styles.gradientVeil}
@@ -31,7 +33,7 @@ export default function MoodTrackerScreen({ navigation }: any) {
 
             <SafeAreaView style={styles.safeArea}>
                 <View style={styles.content}>
-                    <Text style={styles.title}>How are you feeling right now?</Text>
+                    <Text style={[styles.title, { color: theme.colors.textPrimary }]}>How are you feeling right now?</Text>
 
                     <View style={styles.moodGrid}>
                         <Button title="Happy 😊" onPress={() => handleMoodSelect('Happy')} />

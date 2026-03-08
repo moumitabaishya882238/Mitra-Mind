@@ -17,6 +17,8 @@ import LinearGradient from 'react-native-linear-gradient';
 import apiClient from '../api/client';
 import { useCrisis } from '../context/CrisisContext';
 import { useVoiceInput, useVoiceOutput } from '../hooks/useVoice';
+import { buildOfflineChatResponse, enqueueOfflineChat, getOfflineQueueCount } from '../offline/offlineEngine';
+import { useAppTheme } from '../context/ThemeContext';
 
 type ChatMessage = {
     id: string;
@@ -56,6 +58,7 @@ function getMoodColor(moodCategory: string) {
 
 export default function ChatScreen() {
     const { setCrisisAlert } = useCrisis();
+    const { theme } = useAppTheme();
     const [sessionId, setSessionId] = useState('anonymous-device');
     const [messages, setMessages] = useState<ChatMessage[]>([
         { id: '1', text: "Hi, I'm Mitra. I'm here to listen. How are you feeling today?", sender: 'ai' },
@@ -65,6 +68,7 @@ export default function ChatScreen() {
     const [latestAnalysis, setLatestAnalysis] = useState<EmotionAnalysis | null>(null);
     const [crisisData, setCrisisData] = useState<CrisisData>({ detected: false, helplines: [] });
     const [enableTts, setEnableTts] = useState(true);
+    const [pendingOfflineCount, setPendingOfflineCount] = useState(0);
     const showConversation = messages.length > 1;
 
     // Voice input/output hooks
@@ -282,6 +286,9 @@ export default function ChatScreen() {
                     await AsyncStorage.setItem(STORAGE_SESSION_KEY, generatedSession);
                     setSessionId(generatedSession);
                 }
+
+                const queueCount = await getOfflineQueueCount();
+                setPendingOfflineCount(queueCount);
             } catch (error) {
                 console.warn('Session init failed', error);
             }
@@ -358,14 +365,37 @@ export default function ChatScreen() {
                 };
                 setMessages((prev) => [...prev, crisisMsg]);
             }
+
+            const queueCount = await getOfflineQueueCount();
+            setPendingOfflineCount(queueCount);
         } catch (error) {
             console.error('Failed to get AI response', error);
+
+            await enqueueOfflineChat({
+                message: userMsg.text,
+                language: 'en',
+                sessionId,
+            });
+
+            const offline = await buildOfflineChatResponse(userMsg.text, sessionId);
             const errorMsg = {
                 id: (Date.now() + 1).toString(),
-                text: "Sorry, I'm having trouble connecting right now.",
+                text: offline.reply,
                 sender: 'ai' as const,
             };
             setMessages((prev) => [...prev, errorMsg]);
+
+            setLatestAnalysis({
+                moodCategory: offline.analysis.moodCategory || 'Unknown',
+                stressScore: Number(offline.analysis.stressScore || 5),
+                distress:
+                    offline.analysis.distress === 'high' || offline.analysis.distress === 'moderate'
+                        ? offline.analysis.distress
+                        : 'low',
+            });
+
+            const queueCount = await getOfflineQueueCount();
+            setPendingOfflineCount(queueCount);
         } finally {
             setIsSending(false);
         }
@@ -384,18 +414,18 @@ export default function ChatScreen() {
     }, [voiceInput]);
 
     return (
-        <View style={styles.container}>
-            <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+        <View style={[styles.container, { backgroundColor: theme.colors.screenBase }]}>
+            <StatusBar translucent backgroundColor="transparent" barStyle={theme.statusBarStyle} />
 
             <View style={styles.backgroundLayer}>
                 <LinearGradient
-                    colors={['#050A22', '#0E0D30', '#1B1240', '#2C1554']}
+                    colors={theme.gradients.main}
                     start={{ x: 0.5, y: 0 }}
                     end={{ x: 0.5, y: 1 }}
                     style={styles.mainGradient}
                 />
                 <LinearGradient
-                    colors={['rgba(95, 129, 255, 0.10)', 'transparent', 'rgba(154, 89, 255, 0.12)']}
+                    colors={theme.gradients.veil}
                     start={{ x: 0.1, y: 0 }}
                     end={{ x: 0.9, y: 1 }}
                     style={styles.gradientVeil}
@@ -526,6 +556,13 @@ export default function ChatScreen() {
 
                 {showConversation ? (
                     <View style={styles.messageListContainer}>
+                        {pendingOfflineCount > 0 ? (
+                            <View style={styles.offlineQueuePill}>
+                                <Text style={styles.offlineQueuePillText}>
+                                    Offline saved messages: {pendingOfflineCount}
+                                </Text>
+                            </View>
+                        ) : null}
                         <FlatList
                             data={messages}
                             keyExtractor={(item) => item.id}
@@ -1003,6 +1040,21 @@ const styles = StyleSheet.create({
         flex: 1,
         marginTop: 18,
         marginBottom: 10,
+    },
+    offlineQueuePill: {
+        alignSelf: 'flex-start',
+        marginBottom: 8,
+        backgroundColor: 'rgba(120, 176, 255, 0.2)',
+        borderWidth: 1,
+        borderColor: 'rgba(170, 205, 255, 0.55)',
+        borderRadius: 14,
+        paddingVertical: 5,
+        paddingHorizontal: 10,
+    },
+    offlineQueuePillText: {
+        color: 'rgba(230, 242, 255, 0.95)',
+        fontSize: 11,
+        fontWeight: '700',
     },
     messageListContent: {
         paddingBottom: 12,

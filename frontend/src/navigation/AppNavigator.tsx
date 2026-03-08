@@ -3,6 +3,7 @@ import { Animated, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useCrisis } from '../context/CrisisContext';
+import { useAppTheme } from '../context/ThemeContext';
 
 // Import screens
 import ChatScreen from '../screens/ChatScreen';
@@ -18,6 +19,7 @@ const Tab = createBottomTabNavigator();
 // Blinking red badge component
 const CrisisAlertBadge = () => {
     const { crisisAlertActive } = useCrisis();
+    const { theme } = useAppTheme();
     const blinkAnim = useRef(new Animated.Value(1)).current;
 
     useEffect(() => {
@@ -45,22 +47,22 @@ const CrisisAlertBadge = () => {
 
     if (!crisisAlertActive) return null;
 
-    return (
-        <Animated.View style={[styles.crisisBadge, { opacity: blinkAnim }]} />
-    );
+    return <Animated.View style={[styles.crisisBadge, { opacity: blinkAnim, backgroundColor: theme.colors.danger, borderColor: theme.colors.tabBg, shadowColor: theme.colors.danger }]} />;
 };
 
 // Bottom Tab Navigator for main app sections
 const MainTabNavigator = () => {
+    const { theme } = useAppTheme();
+
     return (
         <Tab.Navigator 
             screenOptions={{ 
                 headerShown: false,
-                tabBarActiveTintColor: '#8B5CF6',
-                tabBarInactiveTintColor: '#9CA3AF',
+                tabBarActiveTintColor: theme.colors.tabActive,
+                tabBarInactiveTintColor: theme.colors.tabInactive,
                 tabBarStyle: {
-                    backgroundColor: '#1F2937',
-                    borderTopColor: 'rgba(139, 92, 246, 0.2)',
+                    backgroundColor: theme.colors.tabBg,
+                    borderTopColor: theme.colors.tabBorder,
                     borderTopWidth: 1,
                     paddingBottom: 8,
                     paddingTop: 8,

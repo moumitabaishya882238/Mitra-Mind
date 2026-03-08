@@ -18,6 +18,8 @@ import Video from 'react-native-video';
 import apiClient from '../api/client';
 import { copingActions } from '../data/copingActions';
 import { useVoiceInput, useVoiceOutput } from '../hooks/useVoice';
+import { enqueueOfflineSessionMood } from '../offline/offlineEngine';
+import { useAppTheme } from '../context/ThemeContext';
 
 type RouteParams = {
     actionId?: string;
@@ -118,6 +120,7 @@ function mapCompletionChoice(choice: CompletionChoice, mode?: string) {
 
 export default function CopingActionGuideScreen() {
     const navigation = useNavigation<any>();
+    const { theme } = useAppTheme();
     const route = useRoute();
     const params = (route.params as RouteParams) || {};
 
@@ -696,11 +699,11 @@ export default function CopingActionGuideScreen() {
             const storedSession = await AsyncStorage.getItem(STORAGE_SESSION_KEY);
             const sessionId = storedSession || 'anonymous-device';
             const mapped = mapCompletionChoice(choice, mode || undefined);
-                        const summary = mode === 'grounding'
-                                ? `MindSpace Grounding completion: ${choice}`
-                                : mode === 'color-hunt'
-                                    ? `MindSpace Color Hunt completion: ${choice}`
-                                    : `MindSpace PMR completion: ${choice}`;
+            const summary = mode === 'grounding'
+                ? `MindSpace Grounding completion: ${choice}`
+                : mode === 'color-hunt'
+                    ? `MindSpace Color Hunt completion: ${choice}`
+                    : `MindSpace PMR completion: ${choice}`;
 
             await apiClient.post('/ai/log-session-mood', {
                 sessionId,
@@ -713,7 +716,23 @@ export default function CopingActionGuideScreen() {
             setSaveMessage('Saved to your mood log.');
         } catch (error) {
             console.error('Failed to save completion', error);
-            setSaveMessage('Could not save right now.');
+            const storedSession = await AsyncStorage.getItem(STORAGE_SESSION_KEY);
+            const sessionId = storedSession || 'anonymous-device';
+            const mapped = mapCompletionChoice(choice, mode || undefined);
+            const summary = mode === 'grounding'
+                ? `MindSpace Grounding completion: ${choice}`
+                : mode === 'color-hunt'
+                    ? `MindSpace Color Hunt completion: ${choice}`
+                    : `MindSpace PMR completion: ${choice}`;
+
+            await enqueueOfflineSessionMood({
+                sessionId,
+                moodCategory: mapped.moodCategory,
+                stressScore: mapped.stressScore,
+                crisisDetected: false,
+                conversationSummary: summary,
+            });
+            setSaveMessage('Saved offline. Will sync when online.');
         } finally {
             setIsSavingResult(false);
         }
@@ -778,18 +797,18 @@ export default function CopingActionGuideScreen() {
           : `Round ${cycle} of 3`;
 
     return (
-        <View style={styles.container}>
-            <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+        <View style={[styles.container, { backgroundColor: theme.colors.screenBase }]}>
+            <StatusBar translucent backgroundColor="transparent" barStyle={theme.statusBarStyle} />
 
             <View style={styles.backgroundLayer}>
                 <LinearGradient
-                    colors={['#050A22', '#0E0D30', '#1B1240', '#2C1554']}
+                    colors={theme.gradients.main}
                     start={{ x: 0.5, y: 0 }}
                     end={{ x: 0.5, y: 1 }}
                     style={styles.mainGradient}
                 />
                 <LinearGradient
-                    colors={['rgba(95, 129, 255, 0.10)', 'transparent', 'rgba(154, 89, 255, 0.12)']}
+                    colors={theme.gradients.veil}
                     start={{ x: 0.1, y: 0 }}
                     end={{ x: 0.9, y: 1 }}
                     style={styles.gradientVeil}
