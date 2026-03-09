@@ -5,8 +5,9 @@ import { useAppTheme } from '../context/ThemeContext';
 
 const PostsScreen = require('./PostsScreen').default;
 const MessagesScreen = require('./MessagesScreen').default;
+const ListenersScreen = require('./ListenersScreen').default;
 
-type CommunityTab = 'posts' | 'dms';
+type CommunityTab = 'posts' | 'dms' | 'listeners';
 
 export default function CommunityScreen({ navigation }: any) {
     const { theme } = useAppTheme();
@@ -14,20 +15,14 @@ export default function CommunityScreen({ navigation }: any) {
 
     const topTabs = useMemo(
         () => [
-            { id: 'ai', label: 'AI Chatbot' },
             { id: 'posts', label: 'Posts' },
             { id: 'dms', label: 'DMs' },
+            { id: 'listeners', label: 'Listeners' },
         ],
         []
     );
 
     const onPressTopTab = (id: string) => {
-        if (id === 'ai') {
-            // Keep AI companion as primary feature by redirecting directly to existing chat tab.
-            navigation.navigate('MitraChat');
-            return;
-        }
-
         setTab(id as CommunityTab);
     };
 
@@ -56,7 +51,7 @@ export default function CommunityScreen({ navigation }: any) {
 
                 <View style={[styles.topTabs, { borderColor: theme.colors.borderSoft, backgroundColor: theme.colors.cardBg }]}>
                     {topTabs.map((item) => {
-                        const active = (item.id === 'posts' && tab === 'posts') || (item.id === 'dms' && tab === 'dms');
+                        const active = item.id === tab;
                         return (
                             <Pressable
                                 key={item.id}
@@ -84,8 +79,10 @@ export default function CommunityScreen({ navigation }: any) {
                 <View style={styles.contentArea}>
                     {tab === 'posts' ? (
                         <PostsScreen navigation={navigation} embedded />
-                    ) : (
+                    ) : tab === 'dms' ? (
                         <MessagesScreen navigation={navigation} embedded />
+                    ) : (
+                        <ListenersScreen navigation={navigation} />
                     )}
                 </View>
             </SafeAreaView>

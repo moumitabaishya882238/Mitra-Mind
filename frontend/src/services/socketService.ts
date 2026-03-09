@@ -18,6 +18,18 @@ type DMEventPayload = {
     };
 };
 
+type ListenerChatEventPayload = {
+    chatMessage: {
+        id: string;
+        conversationId: string;
+        userId: string;
+        listenerId: string;
+        senderRole: 'user' | 'listener' | 'system';
+        message: string;
+        createdAt: string;
+    };
+};
+
 export function connectSocket(userId: string) {
     if (socket && currentUserId === userId) return socket;
 
@@ -52,4 +64,14 @@ export function onNewDirectMessage(handler: (payload: DMEventPayload) => void) {
 export function offNewDirectMessage(handler: (payload: DMEventPayload) => void) {
     if (!socket) return;
     socket.off('dm:new', handler);
+}
+
+export function onNewListenerChatMessage(handler: (payload: ListenerChatEventPayload) => void) {
+    if (!socket) return;
+    socket.on('listener-chat:new', handler);
+}
+
+export function offNewListenerChatMessage(handler: (payload: ListenerChatEventPayload) => void) {
+    if (!socket) return;
+    socket.off('listener-chat:new', handler);
 }

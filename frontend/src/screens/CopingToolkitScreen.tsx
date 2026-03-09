@@ -7,11 +7,15 @@ import {
     StatusBar,
     FlatList,
     Pressable,
+    Alert,
+    Linking,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import { CopingAction, copingActions } from '../data/copingActions';
 import { useAppTheme } from '../context/ThemeContext';
+
+const MOODMAPS_URL = 'https://moodmaps.vercel.app';
 
 export default function CopingToolkitScreen() {
     const navigation = useNavigation<any>();
@@ -34,6 +38,24 @@ export default function CopingToolkitScreen() {
             return;
         }
         navigation.navigate('CopingActionGuide', { actionId: selectedAction.id });
+    };
+
+    const openMoodMaps = () => {
+        Alert.alert(
+            'Continue to MoodMaps?',
+            'MoodMaps currently does not support anonymous access. Would you like to continue? Please enjoy.',
+            [
+                { text: 'Not now', style: 'cancel' },
+                {
+                    text: 'Continue',
+                    onPress: () => {
+                        Linking.openURL(MOODMAPS_URL).catch(() => {
+                            Alert.alert('Unable to open MoodMaps', 'Please try again in a moment.');
+                        });
+                    },
+                },
+            ]
+        );
     };
 
     const renderAction = ({ item }: { item: CopingAction }) => {
@@ -106,6 +128,22 @@ export default function CopingToolkitScreen() {
 
                 <Pressable onPress={startSelectedAction} style={({ pressed }) => [styles.startButton, pressed ? styles.startButtonPressed : null]}>
                     <Text style={styles.startButtonText}>Start: {selectedAction.title}</Text>
+                </Pressable>
+
+                <Pressable onPress={openMoodMaps} style={({ pressed }) => [styles.moodMapsCard, pressed ? styles.moodMapsCardPressed : null]}>
+                    <View style={styles.cardHeaderRow}>
+                        <Text style={styles.toolCategory}>Environment Tool</Text>
+                        <Text style={styles.moodMapsBadge}>MoodMaps</Text>
+                    </View>
+                    <Text style={styles.toolTitle}>MoodMaps</Text>
+                    <Text style={styles.moodMapsSubtitle}>Explore how places feel emotionally</Text>
+                    <Text style={styles.toolSummary}>
+                        Discover emotional experiences people associate with places and find calm or peaceful locations.
+                    </Text>
+                    <View style={styles.cardFooterRow}>
+                        <Text style={styles.selectionLabelActive}>Special in MindSpace</Text>
+                        <Text style={styles.longPressHint}>Tap to open website</Text>
+                    </View>
                 </Pressable>
 
                 <FlatList
@@ -192,6 +230,36 @@ const styles = StyleSheet.create({
     toolCardPressed: {
         transform: [{ scale: 0.985 }],
         opacity: 0.94,
+    },
+    moodMapsCard: {
+        backgroundColor: 'rgba(103, 212, 197, 0.16)',
+        borderRadius: 12,
+        marginBottom: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(156, 245, 234, 0.52)',
+        padding: 14,
+        shadowColor: '#8FF2E7',
+        shadowOpacity: 0.25,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 4,
+    },
+    moodMapsCardPressed: {
+        transform: [{ scale: 0.985 }],
+        opacity: 0.95,
+    },
+    moodMapsBadge: {
+        color: '#D7FFF8',
+        fontSize: 11,
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    moodMapsSubtitle: {
+        fontSize: 13,
+        color: '#D2FFF9',
+        marginBottom: 6,
+        fontWeight: '600',
     },
     toolCardUnderDevelopment: {
         opacity: 0.62,

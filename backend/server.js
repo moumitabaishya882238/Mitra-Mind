@@ -12,7 +12,7 @@ dotenv.config();
 const app = express();
 const httpServer = http.createServer(app);
 
-const corsOrigin = process.env.FRONTEND_URL || '*';
+const corsOrigin = process.env.FRONTEND_URL || 'http://localhost:3000';
 const io = new Server(httpServer, {
     cors: {
         origin: corsOrigin,
@@ -37,6 +37,8 @@ app.use(session({
     saveUninitialized: false,
     cookie: {
         secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 }));
@@ -53,11 +55,13 @@ mongoose.connect(MONGODB_URI, {
 })
     .then(() => console.log('MongoDB Connected successfully to Mitra-Mind DB'))
     .catch(err => console.error('MongoDB connection error:', err));
-
 // Define Routes
-// TODO: app.use('/auth', require('./routes/auth'));
+app.use('/auth', require('./routes/auth'));
 app.use('/ai', require('./routes/ai'));
 app.use('/community', require('./routes/community'));
+app.use('/upload', require('./routes/upload'));
+app.use('/', require('./routes/listeners'));
+app.use('/support', require('./routes/support'));
 
 // Root Endpoint
 app.get('/', (req, res) => {
@@ -73,6 +77,11 @@ io.on('connection', (socket) => {
     socket.on('register', ({ userId }) => {
         if (!userId) return;
         socket.join(`user:${String(userId)}`);
+    });
+
+    socket.on('register-listener', ({ listenerId }) => {
+        if (!listenerId) return;
+        socket.join(`listener:${String(listenerId)}`);
     });
 });
 
