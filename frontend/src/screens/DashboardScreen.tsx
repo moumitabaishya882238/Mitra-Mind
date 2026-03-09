@@ -17,6 +17,7 @@ import { useCrisis } from '../context/CrisisContext';
 import { copingActions, MoodCategory } from '../data/copingActions';
 import { cacheDashboardInsights, getCachedDashboardInsights, getOfflineQueueCount } from '../offline/offlineEngine';
 import { useAppTheme } from '../context/ThemeContext';
+import SupportRecommendationCard from '../components/dashboard/SupportRecommendationCard';
 
 type InsightResponse = {
     latest: {
@@ -212,6 +213,8 @@ export default function DashboardScreen() {
                             <Text style={styles.syncPendingText}>Offline saved items: {pendingSyncCount}</Text>
                         </View>
                     ) : null}
+
+                    <SupportRecommendationCard />
 
                     <View style={styles.emotionalStatusBar}>
                         <View style={styles.statusDotContainer}>

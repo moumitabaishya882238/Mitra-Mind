@@ -17,6 +17,8 @@ import CommunityScreen from '../screens/CommunityScreen';
 import CreatePostScreen from '../screens/CreatePostScreen';
 import PostDetailScreen from '../screens/PostDetailScreen';
 import MessagesScreen from '../screens/MessagesScreen';
+import ListenerChatScreen from '../screens/ListenerChatScreen';
+import ListenerProfileScreen from '../screens/ListenerProfileScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -149,6 +151,8 @@ const AppNavigator = () => {
             <Stack.Screen name="CreatePost" component={CreatePostScreen} />
             <Stack.Screen name="PostDetail" component={PostDetailScreen} />
             <Stack.Screen name="Messages" component={MessagesScreen} />
+            <Stack.Screen name="ListenerChat" component={ListenerChatScreen} />
+            <Stack.Screen name="ListenerProfile" component={ListenerProfileScreen} />
         </Stack.Navigator>
     );
 };
