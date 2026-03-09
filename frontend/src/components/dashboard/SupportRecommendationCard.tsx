@@ -78,7 +78,7 @@ export default function SupportRecommendationCard() {
             <Text style={[styles.title, { color: theme.colors.textPrimary }]}>Support Recommendation</Text>
 
             {loading && !data ? (
-                <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>Calculating support layer...</Text>
+                <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>Calculating support layer....</Text>
             ) : null}
 
             {data ? (
