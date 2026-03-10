@@ -146,7 +146,13 @@ function extractFrequentTopics(message = '') {
 }
 
 function topEntriesFromMap(mapObj, limit = 3) {
-    return Array.from(mapObj.entries())
+    if (!mapObj) return [];
+
+    const entries = typeof mapObj.entries === 'function'
+        ? Array.from(mapObj.entries())
+        : Object.entries(mapObj);
+
+    return entries
         .sort((a, b) => b[1] - a[1])
         .slice(0, limit)
         .map(([key, count]) => ({ key, count }));

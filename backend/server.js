@@ -69,6 +69,17 @@ app.get('/', (req, res) => {
     res.json({ message: 'Mitra-Mind Backend is running' });
 });
 
+// Optimized AI Chat Route (Phase 7 - ESM Bridge)
+app.post('/api/chat', async (req, res) => {
+    try {
+        const { chatController } = await import('./services/ai/ChatController.mjs');
+        return chatController.handleChat(req, res);
+    } catch (err) {
+        console.error("ESM Bridge Error:", err);
+        res.status(500).json({ error: "AI Service initialization failed" });
+    }
+});
+
 io.on('connection', (socket) => {
     const initialUserId = socket.handshake?.auth?.userId || socket.handshake?.query?.userId;
     if (initialUserId) {

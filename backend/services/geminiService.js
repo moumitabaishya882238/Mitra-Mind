@@ -1,8 +1,27 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-// Accept either legacy GOOGLE_AI_API_KEY or GEMINI_API_KEY from .env
-const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || 'YOUR_API_KEY';
-const genAI = new GoogleGenerativeAI(apiKey);
+// Rotation logic for legacy CommonJS service
+const getAllKeys = () => {
+    const keys = [];
+    for (let i = 1; i <= 50; i++) {
+        const key = process.env[`GEMINI_KEY_${i}`] || (i === 1 ? process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY : null);
+        if (key && !key.includes('YOUR_')) keys.push(key);
+    }
+    return keys;
+};
+
+let keyIndex = 0;
+let totalTokensUsed = 0;
+
+const getRotatedKey = () => {
+    const keys = getAllKeys();
+    if (keys.length === 0) return 'YOUR_API_KEY';
+    const key = keys[keyIndex % keys.length];
+    keyIndex++;
+    return key;
+};
+
+const getGenAI = () => new GoogleGenerativeAI(getRotatedKey());
 
 // System prompt specific to student mental health companion
 const SYSTEM_PROMPT = `
@@ -21,6 +40,11 @@ Respond directly to their message as Mitra.
 If behavioral patterns are provided, gently reference them in a supportive way without sounding repetitive or creepy.
 `;
 
+const COMMUNITY_INSIGHT_PROMPT = `
+The student has recently shared their feelings in the community. 
+Use this context to acknowledge their openness and show you care.
+`;
+
 async function generateCompanionResponse(
     userMessage,
     emotionContext = {},
@@ -30,9 +54,8 @@ async function generateCompanionResponse(
     communityInsight = null
 ) {
     try {
-        const model = genAI.getGenerativeModel({
-            model: 'gemini-2.5-flash',
-            systemInstruction: SYSTEM_PROMPT
+        const model = getGenAI().getGenerativeModel({
+            model: 'gemini-2.5-flash'
         });
 
         const contextStr = Object.keys(emotionContext).length > 0
@@ -53,10 +76,17 @@ async function generateCompanionResponse(
             ? `${COMMUNITY_INSIGHT_PROMPT}\nRecent Community Post: "${communityInsight.text}" (Mood: ${communityInsight.mood}, Stress: ${communityInsight.stressScore}/10, Date: ${communityInsight.date})\n\n`
             : '';
 
-        const finalPrompt = `${contextStr}${patternStr}${insightStr}${historyStr}User (${language}): ${userMessage}`;
+        const finalPrompt = `${SYSTEM_PROMPT}\n\n${contextStr}${patternStr}${insightStr}${historyStr}User (${language}): ${userMessage}`;
 
         const result = await model.generateContent(finalPrompt);
         const response = await result.response;
+
+        // Log Usage
+        if (response.usageMetadata) {
+            totalTokensUsed += response.usageMetadata.totalTokenCount;
+            console.log(`[AI Usage - Chat] Tokens: ${response.usageMetadata.totalTokenCount} | Session Total: ${totalTokensUsed}`);
+        }
+
         return response.text();
     } catch (error) {
         console.error("Gemini AI generation error:", error);
@@ -102,9 +132,17 @@ Rules:
 `;
 
     try {
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const model = getGenAI().getGenerativeModel({ model: 'gemini-2.5-flash' });
         const result = await model.generateContent(schemaPrompt);
-        let textResponse = result.response.text();
+        const response = await result.response;
+
+        // Log Usage
+        if (response.usageMetadata) {
+            totalTokensUsed += response.usageMetadata.totalTokenCount;
+            console.log(`[AI Usage - Analysis] Tokens: ${response.usageMetadata.totalTokenCount} | Session Total: ${totalTokensUsed}`);
+        }
+
+        let textResponse = response.text();
 
         // Clean up markdown block if it exists
         textResponse = textResponse.replace(/^```json/g, '').replace(/```$/g, '').trim();
@@ -121,12 +159,11 @@ Rules:
 
 async function generateNudgeResponse(type = 'SILENCE', context = {}, language = 'en') {
     try {
-        const model = genAI.getGenerativeModel({
-            model: 'gemini-2.5-flash',
-            systemInstruction: NUDGE_PROMPT
+        const model = getGenAI().getGenerativeModel({
+            model: 'gemini-2.5-flash'
         });
 
-        const prompt = `Type: ${type}. Context: ${JSON.stringify(context)}. Language: ${language}. Generate a nudge:`;
+        const prompt = `${NUDGE_PROMPT}\n\nType: ${type}. Context: ${JSON.stringify(context)}. Language: ${language}. Generate a nudge:`;
         const result = await model.generateContent(prompt);
         return result.response.text().trim();
     } catch (error) {
@@ -137,12 +174,11 @@ async function generateNudgeResponse(type = 'SILENCE', context = {}, language = 
 
 async function generateListenerInsight(studentContext = {}, language = 'en') {
     try {
-        const model = genAI.getGenerativeModel({
-            model: 'gemini-2.5-flash',
-            systemInstruction: LISTENER_INSIGHT_PROMPT
+        const model = getGenAI().getGenerativeModel({
+            model: 'gemini-2.5-flash'
         });
 
-        const prompt = `Student History/Context: ${JSON.stringify(studentContext)}. Language: ${language}. Provide a 3-line preview:`;
+        const prompt = `${LISTENER_INSIGHT_PROMPT}\n\nStudent History/Context: ${JSON.stringify(studentContext)}. Language: ${language}. Provide a 3-line preview:`;
         const result = await model.generateContent(prompt);
         return result.response.text().trim();
     } catch (error) {

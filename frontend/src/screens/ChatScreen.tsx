@@ -322,10 +322,14 @@ export default function ChatScreen() {
         setIsSending(true);
 
         try {
-            const response = await apiClient.post('/ai/chat', {
+            const response = await apiClient.post('/api/chat', {
                 message: userMsg.text,
                 language: 'en',
                 sessionId,
+                conversationHistory: messages.map(m => ({
+                    role: m.sender === 'user' ? 'user' : 'model',
+                    parts: [{ text: m.text }]
+                }))
             });
 
             const aiReply = response.data?.reply || "I'm here with you. Could you share a bit more?";
@@ -387,6 +391,15 @@ export default function ChatScreen() {
                 sender: 'ai' as const,
             };
             setMessages((prev) => [...prev, errorMsg]);
+
+            // Play TTS for offline response if enabled
+            if (enableTts) {
+                try {
+                    await voiceOutput.speak(offline.reply);
+                } catch (err) {
+                    console.warn('TTS failed silently for offline response:', err);
+                }
+            }
 
             setLatestAnalysis({
                 moodCategory: offline.analysis.moodCategory || 'Unknown',
