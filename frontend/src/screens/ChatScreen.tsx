@@ -12,6 +12,7 @@ import {
     Animated,
     Easing,
     ScrollView,
+    Modal,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LinearGradient from 'react-native-linear-gradient';
@@ -72,6 +73,8 @@ export default function ChatScreen() {
     const [crisisData, setCrisisData] = useState<CrisisData>({ detected: false, helplines: [] });
     const [enableTts, setEnableTts] = useState(true);
     const [pendingOfflineCount, setPendingOfflineCount] = useState(0);
+    const [showPrivacyWarning, setShowPrivacyWarning] = useState(false);
+    const [pendingMessage, setPendingMessage] = useState('');
     const showConversation = messages.length > 1;
 
     // Voice input/output hooks
@@ -313,8 +316,18 @@ export default function ChatScreen() {
         }
     }, [voiceInput.transcript, voiceInput.state, isSending]);
 
-    const sendMessageWithText = async (text: string) => {
+    const sendMessageWithText = async (text: string, skipPrivacyCheck = false) => {
         if (!text.trim() || isSending) return;
+
+        if (!skipPrivacyCheck) {
+            // Check for potential PII (Names, Phone Numbers, Emails)
+            const PII_REGEX = /(my (real )?name is [a-z]+)|(call me [a-z]+)|(\b\d{10}\b)|([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/i;
+            if (PII_REGEX.test(text)) {
+                setPendingMessage(text);
+                setShowPrivacyWarning(true);
+                return;
+            }
+        }
 
         const userMsg = { id: Date.now().toString(), text: text.trim(), sender: 'user' as const };
         setMessages((prev) => [...prev, userMsg]);
@@ -419,6 +432,18 @@ export default function ChatScreen() {
 
     const sendMessage = async () => {
         await sendMessageWithText(inputText);
+    };
+
+    const confirmSendMessage = () => {
+        setShowPrivacyWarning(false);
+        sendMessageWithText(pendingMessage, true);
+        setPendingMessage('');
+    };
+
+    const cancelSendMessage = () => {
+        setShowPrivacyWarning(false);
+        setInputText(pendingMessage); // Let them edit the message
+        setPendingMessage('');
     };
 
     const handleMicPress = useCallback(async () => {
@@ -814,6 +839,34 @@ export default function ChatScreen() {
                     </View>
                 </View>
             </SafeAreaView>
+
+            {/* Privacy Warning Modal */}
+            <Modal
+                visible={showPrivacyWarning}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={cancelSendMessage}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.privacyModalContent}>
+                        <Text style={styles.privacyIcon}>🤫</Text>
+                        <Text style={styles.privacyTitle}>Sharing Personal Information</Text>
+                        <Text style={styles.privacyMessage}>
+                            It looks like you might have typed your real name, phone number, or email. Since this is a safe space, I just want to check:
+                            {"\n\n"}
+                            Are you comfortable sharing these personal details with me?
+                        </Text>
+                        <View style={styles.privacyActions}>
+                            <Pressable style={styles.privacyCancelBtn} onPress={cancelSendMessage}>
+                                <Text style={styles.privacyCancelText}>No, let me edit</Text>
+                            </Pressable>
+                            <Pressable style={styles.privacyConfirmBtn} onPress={confirmSendMessage}>
+                                <Text style={styles.privacyConfirmText}>Yes, I'm comfortable</Text>
+                            </Pressable>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -1442,6 +1495,77 @@ const styles = StyleSheet.create({
     },
     ttsButtonText: {
         fontSize: 20,
+    },
+    // Privacy Modal Styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 5, 20, 0.85)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 24,
+    },
+    privacyModalContent: {
+        backgroundColor: '#1E2442',
+        borderRadius: 24,
+        padding: 24,
+        width: '100%',
+        maxWidth: 380,
+        borderWidth: 1,
+        borderColor: 'rgba(160, 180, 255, 0.3)',
+        shadowColor: '#6A86FF',
+        shadowOpacity: 0.25,
+        shadowRadius: 20,
+        elevation: 10,
+    },
+    privacyIcon: {
+        fontSize: 48,
+        textAlign: 'center',
+        marginBottom: 16,
+    },
+    privacyTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+        textAlign: 'center',
+        marginBottom: 12,
+    },
+    privacyMessage: {
+        fontSize: 15,
+        color: 'rgba(230, 240, 255, 0.85)',
+        textAlign: 'center',
+        lineHeight: 22,
+        marginBottom: 24,
+    },
+    privacyActions: {
+        flexDirection: 'row',
+        gap: 12,
+        justifyContent: 'center',
+    },
+    privacyCancelBtn: {
+        flex: 1,
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        paddingVertical: 12,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.2)',
+        alignItems: 'center',
+    },
+    privacyCancelText: {
+        color: '#FFFFFF',
+        fontWeight: '600',
+        fontSize: 14,
+    },
+    privacyConfirmBtn: {
+        flex: 1,
+        backgroundColor: 'rgba(100, 220, 155, 0.8)',
+        paddingVertical: 12,
+        borderRadius: 12,
+        alignItems: 'center',
+    },
+    privacyConfirmText: {
+        color: '#002611',
+        fontWeight: '700',
+        fontSize: 14,
     },
 });
 
