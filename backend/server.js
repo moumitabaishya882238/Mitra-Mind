@@ -6,6 +6,7 @@ const dotenv = require('dotenv');
 const session = require('express-session');
 const passport = require('passport');
 const { Server } = require('socket.io');
+const { processNudges } = require('./services/nudgeService');
 
 dotenv.config();
 
@@ -88,4 +89,14 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 5001; // Using 5001 to avoid conflict with Matri
 httpServer.listen(PORT, () => {
     console.log(`Mitra-Mind Server running on port ${PORT}`);
+
+    // Start Proactive AI Nudge Engine
+    // Check for nudges 1 minute after startup, then every 6 hours
+    setTimeout(() => {
+        processNudges(io);
+    }, 60000);
+
+    setInterval(() => {
+        processNudges(io);
+    }, 6 * 60 * 60 * 1000);
 });

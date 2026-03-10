@@ -41,6 +41,15 @@ const BehaviorPatternSchema = new mongoose.Schema(
             type: Date,
             default: Date.now,
         },
+        lastCommunityInsight: {
+            text: String,
+            mood: String,
+            stressScore: Number,
+            date: Date,
+        },
+        lastNudgeAt: {
+            type: Date,
+        },
     },
     {
         timestamps: true,

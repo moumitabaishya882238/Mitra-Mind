@@ -26,7 +26,8 @@ async function generateCompanionResponse(
     emotionContext = {},
     language = 'en',
     conversationHistory = [],
-    behaviorPatterns = null
+    behaviorPatterns = null,
+    communityInsight = null
 ) {
     try {
         const model = genAI.getGenerativeModel({
@@ -48,7 +49,11 @@ async function generateCompanionResponse(
             ? `Behavioral patterns summary: ${JSON.stringify(behaviorPatterns, null, 2)}\n\n`
             : '';
 
-        const finalPrompt = `${contextStr}${patternStr}${historyStr}User (${language}): ${userMessage}`;
+        const insightStr = communityInsight && communityInsight.text
+            ? `${COMMUNITY_INSIGHT_PROMPT}\nRecent Community Post: "${communityInsight.text}" (Mood: ${communityInsight.mood}, Stress: ${communityInsight.stressScore}/10, Date: ${communityInsight.date})\n\n`
+            : '';
+
+        const finalPrompt = `${contextStr}${patternStr}${insightStr}${historyStr}User (${language}): ${userMessage}`;
 
         const result = await model.generateContent(finalPrompt);
         const response = await result.response;
@@ -70,6 +75,20 @@ Return strictly in JSON formatting.
 User text: ${userMessage}
    `;
 
+    const NUDGE_PROMPT = `
+You are Mitra, a proactive mental health companion. 
+Your goal is to reach out to a student with a SHORT, gentle, and empathetic nudge.
+
+Context:
+- "SILENCE": The student hasn't checked in for over 3 days. Show you care and miss them, but don't be pushy.
+- "STRESS_PEAK": It's a time of day when they usually feel stressed (e.g., late night). Offer a quick 2-minute coping activity or just a listening ear.
+
+Rules:
+1. Keep it to 1-2 natural sentences. 
+2. No markdown.
+3. Be extremely supportive.
+`;
+
     try {
         const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
         const result = await model.generateContent(schemaPrompt);
@@ -88,7 +107,24 @@ User text: ${userMessage}
     }
 }
 
+async function generateNudgeResponse(type = 'SILENCE', context = {}, language = 'en') {
+    try {
+        const model = genAI.getGenerativeModel({
+            model: 'gemini-2.5-flash',
+            systemInstruction: NUDGE_PROMPT
+        });
+
+        const prompt = `Type: ${type}. Context: ${JSON.stringify(context)}. Language: ${language}. Generate a nudge:`;
+        const result = await model.generateContent(prompt);
+        return result.response.text().trim();
+    } catch (error) {
+        console.error("Nudge generation error:", error);
+        return "Hey! Just wanted to check in and see how you're feeling today. I'm here if you need to talk.";
+    }
+}
+
 module.exports = {
     generateCompanionResponse,
-    analyzeEmotionAndExtractData
+    analyzeEmotionAndExtractData,
+    generateNudgeResponse
 };

@@ -75,3 +75,21 @@ export function offNewListenerChatMessage(handler: (payload: ListenerChatEventPa
     if (!socket) return;
     socket.off('listener-chat:new', handler);
 }
+
+export type AINudgeEventPayload = {
+    id: string;
+    type: 'SILENCE' | 'STRESS_PEAK';
+    text: string;
+    action: 'chat' | 'coping';
+    timestamp: string;
+};
+
+export function onAINudge(handler: (payload: AINudgeEventPayload) => void) {
+    if (!socket) return;
+    socket.on('ai:nudge', handler);
+}
+
+export function offAINudge(handler: (payload: AINudgeEventPayload) => void) {
+    if (!socket) return;
+    socket.off('ai:nudge', handler);
+}
