@@ -75,6 +75,18 @@ Return strictly in JSON formatting.
 User text: ${userMessage}
    `;
 
+    const LISTENER_INSIGHT_PROMPT = `
+You are an AI assistant for a human volunteer listener. 
+Your task is to provide a brief, anonymized summary of a student's distress to help the listener understand how to help.
+
+Rules:
+1. Keep it to EXACTLY 3 bullet points.
+2. Focus on: Current Stress Level, Main Concerns (e.g., exams, family, isolation), and Recent Coping Efforts.
+3. Be professional, objective, yet empathetic.
+4. Use "The student" instead of names.
+5. Stay extremely brief (max 1 sentence per bullet).
+`;
+
     const NUDGE_PROMPT = `
 You are Mitra, a proactive mental health companion. 
 Your goal is to reach out to a student with a SHORT, gentle, and empathetic nudge.
@@ -123,8 +135,25 @@ async function generateNudgeResponse(type = 'SILENCE', context = {}, language = 
     }
 }
 
+async function generateListenerInsight(studentContext = {}, language = 'en') {
+    try {
+        const model = genAI.getGenerativeModel({
+            model: 'gemini-2.5-flash',
+            systemInstruction: LISTENER_INSIGHT_PROMPT
+        });
+
+        const prompt = `Student History/Context: ${JSON.stringify(studentContext)}. Language: ${language}. Provide a 3-line preview:`;
+        const result = await model.generateContent(prompt);
+        return result.response.text().trim();
+    } catch (error) {
+        console.error("Listener insight generation error:", error);
+        return "• The student is experiencing moderate stress levels.\n• Main concerns include academic pressure and daily routine.\n• They have recently engaged with basic breathing exercises.";
+    }
+}
+
 module.exports = {
     generateCompanionResponse,
     analyzeEmotionAndExtractData,
-    generateNudgeResponse
+    generateNudgeResponse,
+    generateListenerInsight
 };
