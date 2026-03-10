@@ -1,9 +1,11 @@
 import React from 'react';
 import { View, Text, Button, StyleSheet, SafeAreaView, StatusBar } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { useTranslation } from 'react-i18next';
 import { useAppTheme } from '../context/ThemeContext';
 
 export default function MoodTrackerScreen({ navigation }: any) {
+    const { t } = useTranslation();
     const { theme } = useAppTheme();
 
     const handleMoodSelect = (mood: string) => {
@@ -33,14 +35,14 @@ export default function MoodTrackerScreen({ navigation }: any) {
 
             <SafeAreaView style={styles.safeArea}>
                 <View style={styles.content}>
-                    <Text style={[styles.title, { color: theme.colors.textPrimary }]}>How are you feeling right now?</Text>
+                    <Text style={[styles.title, { color: theme.colors.textPrimary }]}>{t('mood_tracker.title')}</Text>
 
                     <View style={styles.moodGrid}>
-                        <Button title="Happy 😊" onPress={() => handleMoodSelect('Happy')} />
-                        <Button title="Calm 😌" onPress={() => handleMoodSelect('Calm')} />
-                        <Button title="Stressed 😫" onPress={() => handleMoodSelect('Stressed')} />
-                        <Button title="Anxious 😰" onPress={() => handleMoodSelect('Anxious')} />
-                        <Button title="Sad 😔" onPress={() => handleMoodSelect('Sad')} />
+                        <Button title={`${t('mood_tracker.happy')} 😊`} onPress={() => handleMoodSelect('Happy')} />
+                        <Button title={`${t('mood_tracker.calm')} 😌`} onPress={() => handleMoodSelect('Calm')} />
+                        <Button title={`${t('mood_tracker.stressed')} 😫`} onPress={() => handleMoodSelect('Stressed')} />
+                        <Button title={`${t('mood_tracker.anxious')} 😰`} onPress={() => handleMoodSelect('Anxious')} />
+                        <Button title={`${t('mood_tracker.sad')} 😔`} onPress={() => handleMoodSelect('Sad')} />
                     </View>
                 </View>
             </SafeAreaView>

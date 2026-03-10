@@ -11,9 +11,11 @@ import {
     Linking,
     Animated,
     Easing,
+    ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import LinearGradient from 'react-native-linear-gradient';
+import { useTranslation } from 'react-i18next';
 import apiClient from '../api/client';
 import { useCrisis } from '../context/CrisisContext';
 import { useVoiceInput, useVoiceOutput } from '../hooks/useVoice';
@@ -57,11 +59,12 @@ function getMoodColor(moodCategory: string) {
 }
 
 export default function ChatScreen() {
+    const { t } = useTranslation();
     const { setCrisisAlert } = useCrisis();
     const { theme } = useAppTheme();
     const [sessionId, setSessionId] = useState('anonymous-device');
     const [messages, setMessages] = useState<ChatMessage[]>([
-        { id: '1', text: "Hi, I'm Mitra. I'm here to listen. How are you feeling today?", sender: 'ai' },
+        { id: '1', text: t('chat.initial_greeting') || "Hi, I'm Mitra. I'm here to listen. How are you feeling today?", sender: 'ai' },
     ]);
     const [inputText, setInputText] = useState('');
     const [isSending, setIsSending] = useState(false);
@@ -77,7 +80,7 @@ export default function ChatScreen() {
     const isListening = voiceInput.isListening;
     const isSpeaking = voiceOutput.state === 'speaking';
     const isOrbIdle = !isListening && !isSpeaking;
-    
+
     // Mic button animation
     const [micPulseAnim] = useState(new Animated.Value(1));
     const [orbIdleGlowAnim] = useState(new Animated.Value(0));
@@ -356,7 +359,7 @@ export default function ChatScreen() {
                     helplines: response.data?.helplines || [],
                 });
                 setCrisisAlert(true);
-                
+
                 const crisisMsg = {
                     id: (Date.now() + 2).toString(),
                     text: '',
@@ -524,8 +527,8 @@ export default function ChatScreen() {
                                 isListening
                                     ? ['#7AF2FF', '#3F88FF', '#8354FF', '#FF6A9F']
                                     : isSpeaking
-                                      ? ['#89FFD1', '#45E0B3', '#4AB8FF', '#7E72FF']
-                                      : ['#63E7FF', '#375DFF', '#7D43FF', '#FF5FCB']
+                                        ? ['#89FFD1', '#45E0B3', '#4AB8FF', '#7E72FF']
+                                        : ['#63E7FF', '#375DFF', '#7D43FF', '#FF5FCB']
                             }
                             start={{ x: 0.05, y: 0.1 }}
                             end={{ x: 0.95, y: 0.9 }}
@@ -545,11 +548,11 @@ export default function ChatScreen() {
                     </Animated.View>
 
                     <Text style={styles.orbStateLabel}>
-                        {isListening ? 'Listening' : isSpeaking ? 'Speaking' : 'Idle'}
+                        {isListening ? t('chat.listening') : isSpeaking ? 'Speaking' : 'Idle'}
                     </Text>
                     {!showConversation ? (
                         <Text style={styles.heroQuestion}>
-                            How can I <Text style={styles.heroQuestionStrong}>support</Text> you today?
+                            {t('chat.support_prompt_prefix')} <Text style={styles.heroQuestionStrong}>{t('chat.support_prompt_highlight')}</Text> {t('chat.support_prompt_suffix')}
                         </Text>
                     ) : null}
                 </View>
@@ -677,13 +680,13 @@ export default function ChatScreen() {
                                             <View style={styles.helplineActions}>
                                                 <Pressable
                                                     style={styles.callButton}
-                                                    onPress={() => Linking.openURL(`tel:${phoneNumber}`).catch(() => {})}
+                                                    onPress={() => Linking.openURL(`tel:${phoneNumber}`).catch(() => { })}
                                                 >
                                                     <Text style={styles.callButtonText}>📱 Call</Text>
                                                 </Pressable>
                                                 <Pressable
                                                     style={styles.websiteButton}
-                                                    onPress={() => Linking.openURL(helpline.site).catch(() => {})}
+                                                    onPress={() => Linking.openURL(helpline.site).catch(() => { })}
                                                 >
                                                     <Text style={styles.websiteButtonText}>→</Text>
                                                 </Pressable>
@@ -740,7 +743,7 @@ export default function ChatScreen() {
                         {(voiceInput.isListening || voiceInput.state === 'processing') && (
                             <View style={styles.voiceStatusBadge}>
                                 <Text style={styles.voiceStatusText}>
-                                    {voiceInput.isListening ? '🎧 Listening...' : '✓ Got it'}
+                                    {voiceInput.isListening ? t('chat.listening') : t('chat.got_it')}
                                 </Text>
                             </View>
                         )}
@@ -758,8 +761,8 @@ export default function ChatScreen() {
                             onChangeText={setInputText}
                             placeholder={
                                 voiceInput.isListening
-                                    ? 'Listening for your voice...'
-                                    : 'Speak or type your thoughts'
+                                    ? t('chat.listening')
+                                    : t('chat.placeholder')
                             }
                             placeholderTextColor="rgba(255,255,255,0.5)"
                             onSubmitEditing={sendMessage}

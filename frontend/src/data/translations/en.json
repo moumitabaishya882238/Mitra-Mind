@@ -1,0 +1,237 @@
+{
+  "settings": {
+    "title": "Settings",
+    "theme_subtitle": "Choose app theme",
+    "language_subtitle": "Choose app language",
+    "active": "Active",
+    "tap": "Tap"
+  },
+  "common": {
+    "english": "English",
+    "hindi": "Hindi",
+    "assamese": "Assamese"
+  },
+  "chat": {
+    "initial_greeting": "Hi, I'm Mitra. I'm here to listen. How are you feeling today?",
+    "placeholder": "Speak or type your thoughts",
+    "listening": "Listening...",
+    "got_it": "Got it",
+    "support_prompt_prefix": "How can I",
+    "support_prompt_highlight": "support",
+    "support_prompt_suffix": "you today?"
+  },
+  "dashboard": {
+    "greeting": "Hi, there!",
+    "syncing": "Syncing...",
+    "insights": "Insights",
+    "offline_items": "Offline saved items: {{count}}",
+    "stress": "Stress",
+    "trending": "Trending",
+    "crisis_title": "⚠️ URGENT SUPPORT NEEDED",
+    "crisis_subtitle": "Crisis language detected. Immediate help available 24/7.",
+    "call": "Call",
+    "crisis_footer": "You are not alone. Tap any resource above to get immediate help.",
+    "help_prompt": "What can I help you with today?",
+    "chat_button": "Chat",
+    "start_conversation": "Start Conversation",
+    "share_thoughts": "Share your thoughts and feelings",
+    "your_insights": "Your Insights",
+    "daily_mood_log": "Daily Mood Log",
+    "today": "Today",
+    "stress_level": "Stress Level:",
+    "energy": "Energy:",
+    "weekly_mood_trend": "Weekly Mood Trend",
+    "last_7_days": "Last 7 days",
+    "trend_legend": "Avg stress: {{avg}}/10 from {{count}} entries",
+    "coping_strategies": "Personalized coping strategies",
+    "strategy_subtitle": "Based on your latest mood, here are matching MindSpace activities.",
+    "ready_now": "Ready Now",
+    "start": "Start",
+    "under_development": "Under Development",
+    "interaction_history": "Interaction History",
+    "recent": "Recent",
+    "fallback_history": "Start chatting to build your history"
+  },
+  "welcome": {
+    "welcome": "Welcome",
+    "to": "to",
+    "mitra": "Mitra",
+    "message": "A private space to check in, reflect, and get calm, practical support.",
+    "sub_message": "Mitra is your AI companion for emotional well-being. Share how you feel and receive supportive guidance, anytime.",
+    "final_message": "Begin when you are ready.",
+    "button_title": "Start Chatting with Mitra"
+  },
+  "mood_tracker": {
+    "title": "How are you feeling right now?",
+    "happy": "Happy",
+    "calm": "Calm",
+    "stressed": "Stressed",
+    "anxious": "Anxious",
+    "sad": "Sad"
+  },
+  "community": {
+    "title": "Community Support",
+    "subtitle": "Anonymous peer support",
+    "posts": "Posts",
+    "dms": "DMs",
+    "listeners": "Listeners",
+    "share_prompt": "+ Share how you're feeling",
+    "filter_all": "All Posts",
+    "filter_mine": "My Posts",
+    "filter_saved": "Saved Posts",
+    "loading": "Loading posts...",
+    "no_posts": "No posts yet. Be the first to share."
+  },
+  "mindspace": {
+    "title": "MindSpace",
+    "subtitle": "Pick from the list. Selected action starts on a full guide page.",
+    "start_prefix": "Start: ",
+    "env_tool": "Environment Tool",
+    "moodmaps_subtitle": "Explore how places feel emotionally",
+    "moodmaps_summary": "Discover emotional experiences people associate with places and find calm or peaceful locations.",
+    "special": "Special in MindSpace",
+    "tap_open_web": "Tap to open website",
+    "selected": "Selected",
+    "tap_to_select": "Tap to select",
+    "long_press_start": "Long press to start",
+    "coming_soon": "Coming soon",
+    "not_selectable": "Not selectable yet",
+    "development_badge": "Under Development",
+    "alert_title": "Continue to MoodMaps?",
+    "alert_msg": "MoodMaps currently does not support anonymous access. Would you like to continue? Please enjoy.",
+    "not_now": "Not now",
+    "continue": "Continue",
+    "error_title": "Unable to open MoodMaps",
+    "error_msg": "Please try again in a moment.",
+    "actions": {
+      "breathing-box": {
+        "title": "Breathing Exercise",
+        "summary": "Slow box breathing to settle your nervous system."
+      },
+      "breathing-478": {
+        "title": "4-7-8 Breathing",
+        "summary": "Use structured breathing to reduce anxiety quickly."
+      },
+      "muscle-relax": {
+        "title": "Muscle Relaxation",
+        "summary": "Release stress by tensing and relaxing each muscle group."
+      },
+      "grounding-54321": {
+        "title": "5-4-3-2-1 Grounding",
+        "summary": "Bring attention to your senses and return to the present."
+      },
+      "name-objects": {
+        "title": "Color Hunt",
+        "summary": "Use visual scanning to break spiraling thoughts."
+      },
+      "temperature-reset": {
+        "title": "Temperature Reset",
+        "summary": "Use cold sensation to interrupt panic intensity."
+      },
+      "journaling-freewrite": {
+        "title": "Journaling",
+        "summary": "Get thoughts out of your head and onto paper."
+      },
+      "thought-reframe": {
+        "title": "Thought Reframe",
+        "summary": "Challenge negative thoughts with balanced thinking."
+      },
+      "gratitude-3": {
+        "title": "3 Gratitudes",
+        "summary": "Shift attention toward small sources of safety and hope."
+      },
+      "talk-it-out": {
+        "title": "Talk It Out",
+        "summary": "Reach a trusted person with a clear support ask."
+      },
+      "voice-note-release": {
+        "title": "Voice Note Release",
+        "summary": "Speak freely to release pressure and hear yourself clearly."
+      },
+      "support-script": {
+        "title": "Ask for Support Script",
+        "summary": "Use a ready message when words are hard to find."
+      },
+      "tiny-wins-activation": {
+        "title": "Tiny Wins Activation",
+        "summary": "Pick one tiny task to rebuild momentum when energy feels low."
+      },
+      "anger-cooldown-reset": {
+        "title": "Anger Cooldown Reset",
+        "summary": "Release heat in your body before responding to a trigger."
+      },
+      "joy-anchor-snapshot": {
+        "title": "Joy Anchor Snapshot",
+        "summary": "Capture one good moment so your mind can return to it later."
+      }
+    },
+    "guide": {
+      "press_start_ready": "Press Start when you are ready.",
+      "press_start_box": "Press Start to begin the Breathing Exercise.",
+      "press_start_478": "Press Start for a guided 4-7-8 session.",
+      "press_start_pmr": "Press Start to begin Progressive Muscle Relaxation.",
+      "press_start_grounding": "Press Start to begin the 5-4-3-2-1 Grounding exercise.",
+      "press_start_color_hunt": "Press Start to begin Color Hunt.",
+      "inhale": "Breathe in...",
+      "inhale_nose": "Inhale through your nose...",
+      "hold": "Hold...",
+      "hold_softly": "Hold softly. Relax your jaw and shoulders.",
+      "hold_briefly": "Hold briefly...",
+      "exhale": "Breathe out...",
+      "release_slowly": "Release slowly",
+      "relax": "Relax",
+      "tense_muscle": "Tense your {{muscle}}",
+      "between_box_1": "Nice. Let's do this one more.",
+      "between_box_2": "Great. Let's do this one more last time.",
+      "between_478_1": "Beautiful. One more calm wave.",
+      "between_478_2": "Final wave. Slow and steady.",
+      "box_done": "Great job. You completed all 3 rounds.",
+      "478_done": "Excellent. You completed 3 rounds of 4-7-8 breathing.",
+      "pmr_done": "Session Complete. Notice how your body feels now.",
+      "pmr_msg_1": "You're doing great.",
+      "pmr_msg_2": "Let the tension melt away.",
+      "pmr_msg_3": "Notice how your muscles feel softer.",
+      "grounding_done": "Grounding Complete. Notice how you feel.",
+      "color_hunt_done": "Color Hunt Complete. You did it.",
+      "color_hunt_round_prompt": "Round {{round}} - Find something {{color}}.",
+      "find": "FIND",
+      "step_of": "STEP {{step}} OF 5",
+      "round_of": "ROUND {{round}} OF 5",
+      "round_of_count": "Round {{round}} of {{count}}",
+      "hands": "Hands",
+      "forearms": "Forearms",
+      "shoulders": "Shoulders",
+      "face": "Face",
+      "chest": "Chest",
+      "stomach": "Stomach",
+      "legs": "Legs",
+      "feet": "Feet",
+      "sense_see": "Name 5 things you can see.",
+      "sense_feel": "Name 4 things you can feel.",
+      "sense_hear": "Name 3 things you can hear.",
+      "sense_smell": "Name 2 things you can smell.",
+      "sense_taste": "Name 1 thing you can taste.",
+      "circle_see": "SEE",
+      "circle_feel": "FEEL",
+      "circle_hear": "HEAR",
+      "circle_smell": "SMELL",
+      "circle_taste": "TASTE",
+      "grounding_msg_1": "Take your time.",
+      "grounding_msg_2": "Notice small details around you.",
+      "grounding_msg_3": "Stay present in the moment.",
+      "grounding_msg_4": "You are safe right here.",
+      "color_red": "RED",
+      "color_blue": "BLUE",
+      "color_green": "GREEN",
+      "color_yellow": "YELLOW",
+      "color_colorful": "COLORFUL",
+      "color_msg_1": "Nice.",
+      "color_msg_2": "Take a slow breath.",
+      "color_msg_3": "Look around for the next color.",
+      "color_msg_4": "You are doing great. Stay curious.",
+      "saving": "Saving...",
+      "saved_log": "Saved to your mood log.",
+      "saved_offline": "Saved offline. Will sync when online."
+    }
+  }
+}

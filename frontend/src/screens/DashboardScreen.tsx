@@ -12,6 +12,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
+import { useTranslation } from 'react-i18next';
 import apiClient from '../api/client';
 import { useCrisis } from '../context/CrisisContext';
 import { copingActions, MoodCategory } from '../data/copingActions';
@@ -103,6 +104,7 @@ function relativeTime(value: string) {
 }
 
 export default function DashboardScreen() {
+    const { t } = useTranslation();
     const navigation = useNavigation<any>();
     const { clearCrisisAlert } = useCrisis();
     const { theme } = useAppTheme();
@@ -203,14 +205,14 @@ export default function DashboardScreen() {
                             <View style={styles.avatar}>
                                 <Text style={styles.avatarText}>U</Text>
                             </View>
-                            <Text style={styles.greetingText}>Hi, there!</Text>
+                            <Text style={styles.greetingText}>{t('dashboard.greeting')}</Text>
                         </View>
-                        <Text style={styles.greetingText}>{loading ? 'Syncing...' : 'Insights'}</Text>
+                        <Text style={styles.greetingText}>{loading ? t('dashboard.syncing') : t('dashboard.insights')}</Text>
                     </View>
 
                     {pendingSyncCount > 0 ? (
                         <View style={styles.syncPendingPill}>
-                            <Text style={styles.syncPendingText}>Offline saved items: {pendingSyncCount}</Text>
+                            <Text style={styles.syncPendingText}>{t('dashboard.offline_items', { count: pendingSyncCount })}</Text>
                         </View>
                     ) : null}
 
@@ -223,12 +225,12 @@ export default function DashboardScreen() {
                         </View>
                         <View style={styles.statusDivider} />
                         <View style={styles.statusMetric}>
-                            <Text style={styles.statusMetricLabel}>Stress</Text>
+                            <Text style={styles.statusMetricLabel}>{t('dashboard.stress')}</Text>
                             <Text style={styles.statusMetricValue}>{insights.latest.stressScore}/10</Text>
                         </View>
                         <View style={styles.statusDivider} />
                         <View style={styles.statusMetric}>
-                            <Text style={styles.statusMetricLabel}>Trending</Text>
+                            <Text style={styles.statusMetricLabel}>{t('dashboard.trending')}</Text>
                             <Text style={styles.statusMetricValue}>{insights.trend.length > 0 ? '↓' : '→'}</Text>
                         </View>
                     </View>
@@ -238,9 +240,9 @@ export default function DashboardScreen() {
                             <View style={styles.crisisHeader}>
                                 <Text style={styles.crisisAlertIcon}>🚨</Text>
                                 <View style={styles.crisisHeaderContent}>
-                                    <Text style={styles.crisisTitle}>⚠️ URGENT SUPPORT NEEDED</Text>
+                                    <Text style={styles.crisisTitle}>{t('dashboard.crisis_title')}</Text>
                                     <Text style={styles.crisisSubtitle}>
-                                        Crisis language detected. Immediate help available 24/7.
+                                        {t('dashboard.crisis_subtitle')}
                                     </Text>
                                 </View>
                             </View>
@@ -261,13 +263,13 @@ export default function DashboardScreen() {
                                             <View style={styles.helplineActions}>
                                                 <Pressable
                                                     style={styles.callButton}
-                                                    onPress={() => Linking.openURL(`tel:${phoneNumber}`).catch(() => {})}
+                                                    onPress={() => Linking.openURL(`tel:${phoneNumber}`).catch(() => { })}
                                                 >
-                                                    <Text style={styles.callButtonText}>📱 Call</Text>
+                                                    <Text style={styles.callButtonText}>📱 {t('dashboard.call')}</Text>
                                                 </Pressable>
                                                 <Pressable
                                                     style={styles.websiteButton}
-                                                    onPress={() => Linking.openURL(line.site).catch(() => {})}
+                                                    onPress={() => Linking.openURL(line.site).catch(() => { })}
                                                 >
                                                     <Text style={styles.websiteButtonText}>→</Text>
                                                 </Pressable>
@@ -277,34 +279,34 @@ export default function DashboardScreen() {
                                 })}
                             </View>
                             <Text style={styles.crisisFooter}>
-                                You are not alone. Tap any resource above to get immediate help.
+                                {t('dashboard.crisis_footer')}
                             </Text>
                         </View>
                     ) : (
                         <>
-                            <Text style={styles.mainQuestion}>What can I help you with today?</Text>
+                            <Text style={styles.mainQuestion}>{t('dashboard.help_prompt')}</Text>
 
                             <Pressable
                                 style={styles.startConversationButton}
                                 onPress={() => navigation.navigate('MitraChat')}
                             >
                                 <View style={styles.buttonContent}>
-                                    <Text style={styles.buttonIcon}>Chat</Text>
+                                    <Text style={styles.buttonIcon}>{t('dashboard.chat_button')}</Text>
                                     <View style={styles.buttonTextWrapper}>
-                                        <Text style={styles.buttonLabel}>Start Conversation</Text>
-                                        <Text style={styles.buttonHint}>Share your thoughts and feelings</Text>
+                                        <Text style={styles.buttonLabel}>{t('dashboard.start_conversation')}</Text>
+                                        <Text style={styles.buttonHint}>{t('dashboard.share_thoughts')}</Text>
                                     </View>
                                 </View>
                             </Pressable>
                         </>
                     )}
 
-                    <Text style={styles.sectionTitle}>Your Insights</Text>
+                    <Text style={styles.sectionTitle}>{t('dashboard.your_insights')}</Text>
 
                     <View style={styles.analyticsCard}>
                         <View style={styles.cardHeader}>
-                            <Text style={styles.cardTitle}>Daily Mood Log</Text>
-                            <Text style={styles.cardDate}>Today</Text>
+                            <Text style={styles.cardTitle}>{t('dashboard.daily_mood_log')}</Text>
+                            <Text style={styles.cardDate}>{t('dashboard.today')}</Text>
                         </View>
                         <View style={styles.moodVisualization}>
                             <View style={styles.moodIndicator}>
@@ -316,14 +318,14 @@ export default function DashboardScreen() {
                             </View>
                             <View style={styles.moodStats}>
                                 <View style={styles.statRow}>
-                                    <Text style={styles.statLabel}>Stress Level:</Text>
+                                    <Text style={styles.statLabel}>{t('dashboard.stress_level')}</Text>
                                     <View style={styles.stressBar}>
                                         <View style={[styles.stressBarFill, { width: `${stressPercent}%` }]} />
                                     </View>
                                     <Text style={styles.statValue}>{insights.latest.stressScore}/10</Text>
                                 </View>
                                 <View style={styles.statRow}>
-                                    <Text style={styles.statLabel}>Energy:</Text>
+                                    <Text style={styles.statLabel}>{t('dashboard.energy')}</Text>
                                     <View style={styles.energyBar}>
                                         <View style={[styles.energyBarFill, { width: `${energyPercent}%` }]} />
                                     </View>
@@ -335,8 +337,8 @@ export default function DashboardScreen() {
 
                     <View style={styles.analyticsCard}>
                         <View style={styles.cardHeader}>
-                            <Text style={styles.cardTitle}>Weekly Mood Trend</Text>
-                            <Text style={styles.cardDate}>Last 7 days</Text>
+                            <Text style={styles.cardTitle}>{t('dashboard.weekly_mood_trend')}</Text>
+                            <Text style={styles.cardDate}>{t('dashboard.last_7_days')}</Text>
                         </View>
                         <View style={styles.graphPlaceholder}>
                             <View style={styles.barChart}>
@@ -350,7 +352,7 @@ export default function DashboardScreen() {
                             </View>
                             <View style={styles.trendLegend}>
                                 <Text style={styles.graphNote}>
-                                    Avg stress: {insights.summary.averageStress}/10 from {insights.summary.entryCount} entries
+                                    {t('dashboard.trend_legend', { avg: insights.summary.averageStress, count: insights.summary.entryCount })}
                                 </Text>
                             </View>
                         </View>
@@ -358,12 +360,12 @@ export default function DashboardScreen() {
 
                     <View style={styles.analyticsCard}>
                         <View style={styles.cardHeader}>
-                            <Text style={styles.cardTitle}>Personalized coping strategies</Text>
+                            <Text style={styles.cardTitle}>{t('dashboard.coping_strategies')}</Text>
                             <Text style={styles.cardDate}>{activeMood}</Text>
                         </View>
 
                         <Text style={styles.strategySubtitle}>
-                            Based on your latest mood, here are matching MindSpace activities.
+                            {t('dashboard.strategy_subtitle')}
                         </Text>
 
                         <View style={styles.moodCoverageWrap}>
@@ -381,13 +383,12 @@ export default function DashboardScreen() {
                             ))}
                         </View>
 
-                        <Text style={styles.strategyGroupTitle}>Ready Now</Text>
+                        <Text style={styles.strategyGroupTitle}>{t('dashboard.ready_now')}</Text>
                         <View style={styles.activityList}>
                             {(availableActivities.length ? availableActivities : [{
                                 id: 'fallback',
                                 title: 'No direct match yet',
                                 summary: 'Try opening MindSpace to explore nearby categories.',
-                                duration: '',
                             }]).slice(0, 4).map((item) => (
                                 <View style={styles.activityItem} key={item.id}>
                                     <Text style={styles.activityIcon}>Play</Text>
@@ -400,14 +401,14 @@ export default function DashboardScreen() {
                                             style={styles.activityCta}
                                             onPress={() => navigation.navigate('CopingActionGuide', { actionId: item.id })}
                                         >
-                                            <Text style={styles.activityCtaText}>Start</Text>
+                                            <Text style={styles.activityCtaText}>{t('dashboard.start')}</Text>
                                         </Pressable>
                                     ) : null}
                                 </View>
                             ))}
                         </View>
 
-                        <Text style={[styles.strategyGroupTitle, styles.strategyGroupTitleSecondary]}>Under Development</Text>
+                        <Text style={[styles.strategyGroupTitle, styles.strategyGroupTitleSecondary]}>{t('dashboard.under_development')}</Text>
                         <View style={styles.activityList}>
                             {(upcomingActivities.length ? upcomingActivities : [{
                                 id: 'fallback-upcoming',
@@ -421,7 +422,7 @@ export default function DashboardScreen() {
                                         <Text style={styles.activityTime}>{item.summary}</Text>
                                     </View>
                                     <View style={styles.devPill}>
-                                        <Text style={styles.devPillText}>Under Dev</Text>
+                                        <Text style={styles.devPillText}>{t('dashboard.under_development')}</Text>
                                     </View>
                                 </View>
                             ))}
@@ -430,12 +431,12 @@ export default function DashboardScreen() {
 
                     <View style={styles.analyticsCard}>
                         <View style={styles.cardHeader}>
-                            <Text style={styles.cardTitle}>Interaction History</Text>
-                            <Text style={styles.cardDate}>Recent</Text>
+                            <Text style={styles.cardTitle}>{t('dashboard.interaction_history')}</Text>
+                            <Text style={styles.cardDate}>{t('dashboard.recent')}</Text>
                         </View>
                         <View style={styles.activityList}>
                             {(insights.recentInteractions.length ? insights.recentInteractions : [
-                                { text: 'Start chatting to build your history', createdAt: new Date().toISOString() },
+                                { text: t('dashboard.fallback_history'), createdAt: new Date().toISOString() },
                             ]).map((item, idx) => (
                                 <View style={styles.activityItem} key={`${item.createdAt}-${idx}`}>
                                     <Text style={styles.activityIcon}>Note</Text>

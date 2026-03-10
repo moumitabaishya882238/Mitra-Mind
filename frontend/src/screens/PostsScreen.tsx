@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useAppTheme } from '../context/ThemeContext';
 import PostCard from '../components/community/PostCard';
 import communityService, { CommunityFilter, CommunityPost } from '../services/communityService';
@@ -13,6 +14,7 @@ type Props = {
 };
 
 export default function PostsScreen({ navigation }: Props) {
+    const { t } = useTranslation();
     const { theme } = useAppTheme();
     const [sessionId, setSessionId] = useState('anonymous-device');
     const [filter, setFilter] = useState<CommunityFilter>('all');
@@ -21,11 +23,11 @@ export default function PostsScreen({ navigation }: Props) {
 
     const filters = useMemo(
         () => [
-            { id: 'all' as CommunityFilter, label: 'All Posts' },
-            { id: 'mine' as CommunityFilter, label: 'My Posts' },
-            { id: 'saved' as CommunityFilter, label: 'Saved Posts' },
+            { id: 'all' as CommunityFilter, label: t('community.filter_all') },
+            { id: 'mine' as CommunityFilter, label: t('community.filter_mine') },
+            { id: 'saved' as CommunityFilter, label: t('community.filter_saved') },
         ],
-        []
+        [t]
     );
 
     const ensureSessionId = useCallback(async () => {
@@ -94,7 +96,7 @@ export default function PostsScreen({ navigation }: Props) {
                 style={[styles.createButton, { backgroundColor: theme.colors.accent }]}
                 onPress={() => navigation.navigate('CreatePost')}
             >
-                <Text style={styles.createButtonText}>+ Share how you're feeling</Text>
+                <Text style={styles.createButtonText}>{t('community.share_prompt')}</Text>
             </Pressable>
 
             <View style={styles.filterRow}>
@@ -126,11 +128,11 @@ export default function PostsScreen({ navigation }: Props) {
             </View>
 
             {loading ? (
-                <Text style={[styles.stateText, { color: theme.colors.textSecondary }]}>Loading posts...</Text>
+                <Text style={[styles.stateText, { color: theme.colors.textSecondary }]}>{t('community.loading')}</Text>
             ) : null}
 
             {!loading && !posts.length ? (
-                <Text style={[styles.stateText, { color: theme.colors.textSecondary }]}>No posts yet. Be the first to share.</Text>
+                <Text style={[styles.stateText, { color: theme.colors.textSecondary }]}>{t('community.no_posts')}</Text>
             ) : null}
 
             <FlatList

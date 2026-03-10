@@ -11,6 +11,7 @@ import {
     Vibration,
     TextInput,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -119,6 +120,7 @@ function mapCompletionChoice(choice: CompletionChoice, mode?: string) {
 }
 
 export default function CopingActionGuideScreen() {
+    const { t } = useTranslation();
     const navigation = useNavigation<any>();
     const { theme } = useAppTheme();
     const route = useRoute();
@@ -147,7 +149,7 @@ export default function CopingActionGuideScreen() {
     const [phase, setPhase] = useState<GuidedPhase>('inhale');
     const [countdown, setCountdown] = useState(5);
     const [cycle, setCycle] = useState(1);
-    const [coachText, setCoachText] = useState('Press Start when you are ready.');
+    const [coachText, setCoachText] = useState(t('mindspace.guide.press_start_ready'));
 
     const [currentMuscleGroup, setCurrentMuscleGroup] = useState(MUSCLE_GROUPS[0]);
     const [ambience, setAmbience] = useState<AmbienceKey>('none');
@@ -230,7 +232,7 @@ export default function CopingActionGuideScreen() {
             setCurrentItemInput('');
             setPhase('mindful-pause');
             setCountdown(0);
-            setCoachText('Press Start to begin the 5-4-3-2-1 Grounding exercise.');
+            setCoachText(t('mindspace.guide.press_start_grounding'));
             return;
         }
 
@@ -238,28 +240,28 @@ export default function CopingActionGuideScreen() {
             setCurrentMuscleGroup(MUSCLE_GROUPS[0]);
             setPhase('tense');
             setCountdown(5);
-            setCoachText('Press Start to begin Progressive Muscle Relaxation.');
+            setCoachText(t('mindspace.guide.press_start_pmr'));
             return;
         }
 
         if (mode === 'color-hunt') {
             setPhase('mindful-pause');
             setCountdown(0);
-            setCoachText('Press Start to begin Color Hunt.');
+            setCoachText(t('mindspace.guide.press_start_color_hunt'));
             return;
         }
 
         if (mode === '478') {
             setPhase('inhale');
             setCountdown(4);
-            setCoachText('Press Start for a guided 4-7-8 session.');
+            setCoachText(t('mindspace.guide.press_start_478'));
             return;
         }
 
         setPhase('inhale');
         setCountdown(5);
-        setCoachText('Press Start when you are ready.');
-    }, [mode, breathAnim]);
+        setCoachText(t('mindspace.guide.press_start_ready'));
+    }, [mode, breathAnim, t]);
 
     useEffect(() => {
         if (
@@ -404,8 +406,8 @@ export default function CopingActionGuideScreen() {
 
         const betweenLine =
             currentCycle === 1
-                ? "Nice. Let's do this one more."
-                : "Great. Let's do this one more last time.";
+                ? t('mindspace.guide.between_box_1')
+                : t('mindspace.guide.between_box_2');
 
         setCoachText(betweenLine);
         runCountdownAfterCoach(3, () => runBreathingInhale(currentCycle + 1), betweenLine);
@@ -413,21 +415,21 @@ export default function CopingActionGuideScreen() {
 
     const run478Between = (currentCycle: number) => {
         setPhase('between');
-        const betweenLine = currentCycle === 1 ? 'Beautiful. One more calm wave.' : 'Final wave. Slow and steady.';
+        const betweenLine = currentCycle === 1 ? t('mindspace.guide.between_478_1') : t('mindspace.guide.between_478_2');
         setCoachText(betweenLine);
         runCountdownAfterCoach(2, () => runBreathingInhale(currentCycle + 1), betweenLine);
     };
 
     const runBoxInhaleToExhalePause = (currentCycle: number) => {
         setPhase('hold');
-        setCoachText('Hold briefly...');
+        setCoachText(t('mindspace.guide.hold_briefly'));
         animateCircle(1.08, 1000);
         runCountdown(1, () => runBreathingExhale(currentCycle));
     };
 
     const runBreathingExhale = (currentCycle: number) => {
         setPhase('exhale');
-        setCoachText('Breathe out...');
+        setCoachText(t('mindspace.guide.exhale'));
         const exhaleSeconds = mode === '478' ? 8 : 5;
         animateCircle(0, exhaleSeconds * 1000);
 
@@ -445,8 +447,8 @@ export default function CopingActionGuideScreen() {
             setSessionState('done');
             setCoachText(
                 mode === '478'
-                    ? 'Excellent. You completed 3 rounds of 4-7-8 breathing.'
-                    : 'Great job. You completed all 3 rounds.'
+                    ? t('mindspace.guide.478_done')
+                    : t('mindspace.guide.box_done')
             );
             setCountdown(0);
         });
@@ -454,7 +456,7 @@ export default function CopingActionGuideScreen() {
 
     const runBreathingHold = (currentCycle: number) => {
         setPhase('hold');
-        setCoachText('Hold softly. Relax your jaw and shoulders.');
+        setCoachText(t('mindspace.guide.hold_softly'));
         animateCircle(1.08, 7000);
         runCountdown(7, () => runBreathingExhale(currentCycle));
     };
@@ -462,7 +464,7 @@ export default function CopingActionGuideScreen() {
     const runBreathingInhale = (targetCycle: number) => {
         setCycle(targetCycle);
         setPhase('inhale');
-        setCoachText(mode === '478' ? 'Inhale through your nose...' : 'Breathe in...');
+        setCoachText(mode === '478' ? t('mindspace.guide.inhale_nose') : t('mindspace.guide.inhale'));
 
         const inhaleSeconds = mode === '478' ? 4 : 5;
         animateCircle(1, inhaleSeconds * 1000);
@@ -480,21 +482,21 @@ export default function CopingActionGuideScreen() {
         setCycle(roundIndex + 1);
         setCurrentMuscleGroup(muscleGroup);
         setPhase('tense');
-        setCoachText(`Tense your ${muscleGroup}`);
+        setCoachText(t('mindspace.guide.tense_muscle', { muscle: t(`mindspace.guide.${muscleGroup.toLowerCase()}`) }));
         animateCircle(1, 5000);
         runCountdown(5, () => runPmrHold(roundIndex));
     };
 
     const runPmrHold = (roundIndex: number) => {
         setPhase('hold');
-        setCoachText('Hold');
+        setCoachText(t('mindspace.guide.hold'));
         animateCircle(1.08, 3000);
         runCountdown(3, () => runPmrRelease(roundIndex));
     };
 
     const runPmrRelease = (roundIndex: number) => {
         setPhase('release');
-        setCoachText('Release slowly');
+        setCoachText(t('mindspace.guide.release_slowly'));
         Vibration.vibrate(24);
         animateCircle(0.72, 2000);
         runCountdown(2, () => runPmrRelax(roundIndex));
@@ -502,12 +504,12 @@ export default function CopingActionGuideScreen() {
 
     const runPmrRelax = (roundIndex: number) => {
         setPhase('relax');
-        setCoachText('Relax');
+        setCoachText(t('mindspace.guide.relax'));
         animateCircle(0.85, 5000);
         runCountdown(5, () => {
             if (roundIndex < MUSCLE_GROUPS.length - 1) {
                 setPhase('between');
-                const betweenLine = PMR_MESSAGES[roundIndex % PMR_MESSAGES.length];
+                const betweenLine = t(`mindspace.guide.pmr_msg_${(roundIndex % 3) + 1}`);
                 setCoachText(betweenLine);
                 runCountdownAfterCoach(3, () => runPmrTense(roundIndex + 1), betweenLine);
                 return;
@@ -515,7 +517,7 @@ export default function CopingActionGuideScreen() {
 
             setPhase('between');
             setSessionState('done');
-            setCoachText('Session Complete. Notice how your body feels now.');
+            setCoachText(t('mindspace.guide.pmr_done'));
             setCountdown(0);
         });
     };
@@ -525,18 +527,18 @@ export default function CopingActionGuideScreen() {
             setGroundingStepIndex(groundingStepIndex + 1);
             setCurrentItemInput('');
             setPhase('mindful-pause');
-            setCoachText(GROUNDING_MESSAGES[groundingStepIndex % GROUNDING_MESSAGES.length]);
+            setCoachText(t(`mindspace.guide.grounding_msg_${(groundingStepIndex % 4) + 1}`));
             animateCircle(1, 4000);
             runCountdown(4, () => {
                 setPhase('mindful-pause');
-                setCoachText(GROUNDING_PROMPTS[GROUNDING_STEPS[groundingStepIndex + 1]]);
+                setCoachText(t(`mindspace.guide.sense_${GROUNDING_STEPS[groundingStepIndex + 1]}`));
                 setCountdown(0);
             });
         } else {
             // All steps done
             setSessionState('done');
             setPhase('mindful-pause');
-            setCoachText('Grounding Complete. Notice how you feel.');
+            setCoachText(t('mindspace.guide.grounding_done'));
             setCountdown(0);
         }
     };
@@ -584,19 +586,20 @@ export default function CopingActionGuideScreen() {
             setSessionState('done');
             setPhase('between');
             setCountdown(0);
-            setCoachText('Color Hunt Complete. You did it.');
+            setCoachText(t('mindspace.guide.color_hunt_done'));
             return;
         }
 
         setIsColorHuntTransitioning(true);
         setPhase('between');
-        setCoachText(COLOR_HUNT_MESSAGES[currentRound % COLOR_HUNT_MESSAGES.length]);
+        setCoachText(t(`mindspace.guide.color_msg_${(currentRound % 4) + 1}`));
         runCountdown(3, () => {
             const nextRound = currentRound + 1;
             setColorHuntRoundIndex(nextRound);
             setPhase('mindful-pause');
             setCountdown(0);
-            setCoachText(COLOR_HUNT_ROUNDS[nextRound].prompt);
+            const nextRoundData = COLOR_HUNT_ROUNDS[nextRound];
+            setCoachText(t('mindspace.guide.color_hunt_round_prompt', { round: nextRound + 1, color: t(`mindspace.guide.color_${nextRoundData.label.toLowerCase()}`) }));
             setIsColorHuntTransitioning(false);
         });
     };
@@ -614,7 +617,8 @@ export default function CopingActionGuideScreen() {
             setColorHuntCompleted([false, false, false, false, false]);
             setIsColorHuntTransitioning(false);
             setPhase('mindful-pause');
-            setCoachText(COLOR_HUNT_ROUNDS[0].prompt);
+            const firstRound = COLOR_HUNT_ROUNDS[0];
+            setCoachText(t('mindspace.guide.color_hunt_round_prompt', { round: 1, color: t(`mindspace.guide.color_${firstRound.label.toLowerCase()}`) }));
             setCountdown(0);
             return;
         }
@@ -624,7 +628,7 @@ export default function CopingActionGuideScreen() {
             setGroundingItems([[], [], [], [], []]);
             setCurrentItemInput('');
             setPhase('mindful-pause');
-            setCoachText(GROUNDING_PROMPTS[GROUNDING_STEPS[0]]);
+            setCoachText(t(`mindspace.guide.sense_${GROUNDING_STEPS[0]}`));
             setCountdown(0);
             return;
         }
@@ -660,27 +664,27 @@ export default function CopingActionGuideScreen() {
             setGroundingItems([[], [], [], [], []]);
             setCurrentItemInput('');
             setPhase('mindful-pause');
-            setCoachText('Press Start to begin the 5-4-3-2-1 Grounding exercise.');
+            setCoachText(t('mindspace.guide.press_start_grounding'));
             setCountdown(0);
         } else if (mode === 'color-hunt') {
             setColorHuntRoundIndex(0);
             setColorHuntCompleted([false, false, false, false, false]);
             setIsColorHuntTransitioning(false);
             setPhase('mindful-pause');
-            setCoachText('Press Start to begin Color Hunt.');
+            setCoachText(t('mindspace.guide.press_start_color_hunt'));
             setCountdown(0);
         } else if (mode === 'pmr') {
             setPhase('tense');
             setCurrentMuscleGroup(MUSCLE_GROUPS[0]);
             setCountdown(5);
-            setCoachText('Press Start to begin Progressive Muscle Relaxation.');
+            setCoachText(t('mindspace.guide.press_start_pmr'));
         } else {
             setPhase('inhale');
             setCountdown(mode === '478' ? 4 : 5);
             setCoachText(
                 mode === '478'
-                    ? 'Press Start for a guided 4-7-8 session.'
-                    : 'Press Start when you are ready.'
+                    ? t('mindspace.guide.press_start_478')
+                    : t('mindspace.guide.press_start_ready')
             );
         }
 
@@ -693,7 +697,7 @@ export default function CopingActionGuideScreen() {
         setCompletionChoice(choice);
         setGrounderCompletionChoice(choice as 'Calmer' | 'Same' | 'Still overwhelmed');
         setIsSavingResult(true);
-        setSaveMessage('Saving...');
+        setSaveMessage(t('mindspace.guide.saving'));
 
         try {
             const storedSession = await AsyncStorage.getItem(STORAGE_SESSION_KEY);
@@ -713,7 +717,7 @@ export default function CopingActionGuideScreen() {
                 conversationSummary: summary,
             });
 
-            setSaveMessage('Saved to your mood log.');
+            setSaveMessage(t('mindspace.guide.saved_log'));
         } catch (error) {
             console.error('Failed to save completion', error);
             const storedSession = await AsyncStorage.getItem(STORAGE_SESSION_KEY);
@@ -732,7 +736,7 @@ export default function CopingActionGuideScreen() {
                 crisisDetected: false,
                 conversationSummary: summary,
             });
-            setSaveMessage('Saved offline. Will sync when online.');
+            setSaveMessage(t('mindspace.guide.saved_offline'));
         } finally {
             setIsSavingResult(false);
         }
@@ -770,31 +774,31 @@ export default function CopingActionGuideScreen() {
     const shouldPlayAmbience = mode === 'pmr' && ambience !== 'none' && sessionState === 'running';
 
     const circlePhaseLabel = () => {
-        if (mode === 'color-hunt') return 'FIND';
-        if (phase === 'inhale') return 'Breathe in';
-        if (phase === 'hold') return 'Hold';
-        if (phase === 'exhale') return 'Breathe out';
-        if (phase === 'tense') return `Tense your ${currentMuscleGroup}`;
-        if (phase === 'release') return 'Release slowly';
-        if (phase === 'relax') return 'Relax';
-        if (phase === 'mindful-pause') return GROUNDING_CIRCLES[GROUNDING_STEPS[groundingStepIndex]];
-        return 'Get ready';
+        if (mode === 'color-hunt') return t('mindspace.guide.find');
+        if (phase === 'inhale') return t('mindspace.guide.inhale');
+        if (phase === 'hold') return t('mindspace.guide.hold');
+        if (phase === 'exhale') return t('mindspace.guide.exhale');
+        if (phase === 'tense') return t('mindspace.guide.tense_muscle', { muscle: t(`mindspace.guide.${currentMuscleGroup.toLowerCase()}`) });
+        if (phase === 'release') return t('mindspace.guide.release_slowly');
+        if (phase === 'relax') return t('mindspace.guide.relax');
+        if (phase === 'mindful-pause') return t(`mindspace.guide.circle_${GROUNDING_STEPS[groundingStepIndex]}`);
+        return t('mindspace.guide.press_start_ready');
     };
 
     const circleSecondaryLabel = () => {
         if (mode === 'color-hunt') {
-            return COLOR_HUNT_ROUNDS[colorHuntRoundIndex].label;
+            return t(`mindspace.guide.color_${COLOR_HUNT_ROUNDS[colorHuntRoundIndex].label.toLowerCase()}`);
         }
         return countdown > 0 ? String(countdown) : '';
     };
 
     const roundLabel = mode === 'grounding'
-        ? `STEP ${groundingStepIndex + 1} OF 5`
+        ? t('mindspace.guide.step_of', { step: groundingStepIndex + 1 })
         : mode === 'color-hunt'
-          ? `ROUND ${colorHuntRoundIndex + 1} OF 5`
-        : mode === 'pmr'
-          ? `Round ${cycle} of ${MUSCLE_GROUPS.length}`
-          : `Round ${cycle} of 3`;
+            ? t('mindspace.guide.round_of', { round: colorHuntRoundIndex + 1 })
+            : mode === 'pmr'
+                ? t('mindspace.guide.round_of_count', { round: cycle, count: MUSCLE_GROUPS.length })
+                : t('mindspace.guide.round_of_count', { round: cycle, count: 3 });
 
     return (
         <View style={[styles.container, { backgroundColor: theme.colors.screenBase }]}>
@@ -964,10 +968,10 @@ export default function CopingActionGuideScreen() {
                                                     {option === 'none'
                                                         ? 'Off'
                                                         : option === 'rain'
-                                                          ? 'Soft rain'
-                                                          : option === 'ocean'
-                                                            ? 'Ocean waves'
-                                                            : 'Ambient piano'}
+                                                            ? 'Soft rain'
+                                                            : option === 'ocean'
+                                                                ? 'Ocean waves'
+                                                                : 'Ambient piano'}
                                                 </Text>
                                             </Pressable>
                                         ))}
@@ -982,14 +986,14 @@ export default function CopingActionGuideScreen() {
                                         phase === 'inhale'
                                             ? styles.breathingCircleGlowInhale
                                             : phase === 'hold'
-                                              ? styles.breathingCircleGlowHold
-                                              : phase === 'exhale'
-                                                ? styles.breathingCircleGlowExhale
-                                                : phase === 'tense'
-                                                  ? styles.breathingCircleGlowInhale
-                                                  : phase === 'release'
+                                                ? styles.breathingCircleGlowHold
+                                                : phase === 'exhale'
                                                     ? styles.breathingCircleGlowExhale
-                                                    : styles.breathingCircleGlowBetween,
+                                                    : phase === 'tense'
+                                                        ? styles.breathingCircleGlowInhale
+                                                        : phase === 'release'
+                                                            ? styles.breathingCircleGlowExhale
+                                                            : styles.breathingCircleGlowBetween,
                                         {
                                             opacity: breathingGlow,
                                             transform: [{ scale: breathingScale }],
@@ -1003,14 +1007,14 @@ export default function CopingActionGuideScreen() {
                                         phase === 'inhale'
                                             ? styles.breathingCircleInhale
                                             : phase === 'hold'
-                                              ? styles.breathingCircleHold
-                                              : phase === 'exhale'
-                                                ? styles.breathingCircleExhale
-                                                : phase === 'tense'
-                                                  ? styles.breathingCircleInhale
-                                                  : phase === 'release'
+                                                ? styles.breathingCircleHold
+                                                : phase === 'exhale'
                                                     ? styles.breathingCircleExhale
-                                                    : styles.breathingCircleBetween,
+                                                    : phase === 'tense'
+                                                        ? styles.breathingCircleInhale
+                                                        : phase === 'release'
+                                                            ? styles.breathingCircleExhale
+                                                            : styles.breathingCircleBetween,
                                         {
                                             opacity: tickOpacity,
                                             transform: [{ scale: breathingScale }, { scale: tickScale }],
@@ -1044,14 +1048,14 @@ export default function CopingActionGuideScreen() {
                                         {sessionState === 'done'
                                             ? 'Start Again'
                                             : mode === '478'
-                                              ? 'Start 4-7-8'
-                                              : mode === 'pmr'
-                                                ? 'Start Session'
-                                                                                                : mode === 'color-hunt'
-                                                                                                    ? 'Start Color Hunt'
-                                                : mode === 'grounding'
-                                                  ? 'Start Grounding'
-                                                  : 'Start'}
+                                                ? 'Start 4-7-8'
+                                                : mode === 'pmr'
+                                                    ? 'Start Session'
+                                                    : mode === 'color-hunt'
+                                                        ? 'Start Color Hunt'
+                                                        : mode === 'grounding'
+                                                            ? 'Start Grounding'
+                                                            : 'Start'}
                                     </Text>
                                 </Pressable>
                             ) : null}

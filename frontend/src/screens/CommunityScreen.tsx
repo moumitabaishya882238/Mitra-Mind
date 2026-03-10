@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, SafeAreaView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { useTranslation } from 'react-i18next';
 import { useAppTheme } from '../context/ThemeContext';
 
 const PostsScreen = require('./PostsScreen').default;
@@ -10,16 +11,17 @@ const ListenersScreen = require('./ListenersScreen').default;
 type CommunityTab = 'posts' | 'dms' | 'listeners';
 
 export default function CommunityScreen({ navigation }: any) {
+    const { t } = useTranslation();
     const { theme } = useAppTheme();
     const [tab, setTab] = useState<CommunityTab>('posts');
 
     const topTabs = useMemo(
         () => [
-            { id: 'posts', label: 'Posts' },
-            { id: 'dms', label: 'DMs' },
-            { id: 'listeners', label: 'Listeners' },
+            { id: 'posts', label: t('community.posts') },
+            { id: 'dms', label: t('community.dms') },
+            { id: 'listeners', label: t('community.listeners') },
         ],
-        []
+        [t]
     );
 
     const onPressTopTab = (id: string) => {
@@ -46,8 +48,8 @@ export default function CommunityScreen({ navigation }: any) {
             </View>
 
             <SafeAreaView style={styles.safeArea}>
-                <Text style={[styles.title, { color: theme.colors.textPrimary }]}>Community Support</Text>
-                <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>Anonymous peer support</Text>
+                <Text style={[styles.title, { color: theme.colors.textPrimary }]}>{t('community.title')}</Text>
+                <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>{t('community.subtitle')}</Text>
 
                 <View style={[styles.topTabs, { borderColor: theme.colors.borderSoft, backgroundColor: theme.colors.cardBg }]}>
                     {topTabs.map((item) => {

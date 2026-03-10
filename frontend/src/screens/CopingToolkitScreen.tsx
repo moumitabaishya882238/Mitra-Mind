@@ -12,12 +12,14 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
+import { useTranslation } from 'react-i18next';
 import { CopingAction, copingActions } from '../data/copingActions';
 import { useAppTheme } from '../context/ThemeContext';
 
 const MOODMAPS_URL = 'https://moodmaps.vercel.app';
 
 export default function CopingToolkitScreen() {
+    const { t } = useTranslation();
     const navigation = useNavigation<any>();
     const { theme } = useAppTheme();
     const firstPlayable = useMemo(
@@ -42,15 +44,15 @@ export default function CopingToolkitScreen() {
 
     const openMoodMaps = () => {
         Alert.alert(
-            'Continue to MoodMaps?',
-            'MoodMaps currently does not support anonymous access. Would you like to continue? Please enjoy.',
+            t('mindspace.alert_title'),
+            t('mindspace.alert_msg'),
             [
-                { text: 'Not now', style: 'cancel' },
+                { text: t('mindspace.not_now'), style: 'cancel' },
                 {
-                    text: 'Continue',
+                    text: t('mindspace.continue'),
                     onPress: () => {
                         Linking.openURL(MOODMAPS_URL).catch(() => {
-                            Alert.alert('Unable to open MoodMaps', 'Please try again in a moment.');
+                            Alert.alert(t('mindspace.error_title'), t('mindspace.error_msg'));
                         });
                     },
                 },
@@ -89,13 +91,13 @@ export default function CopingToolkitScreen() {
                         {underDevelopment ? <Text style={styles.underDevelopmentBadge}>Under Development</Text> : null}
                     </View>
                 </View>
-                <Text style={styles.toolTitle}>{item.title}</Text>
-                <Text style={styles.toolSummary}>{item.summary}</Text>
+                <Text style={[styles.toolTitle, { color: theme.colors.textPrimary }]}>{t(`mindspace.actions.${item.id}.title`)}</Text>
+                <Text style={styles.toolSummary}>{t(`mindspace.actions.${item.id}.summary`)}</Text>
                 <View style={styles.cardFooterRow}>
                     <Text style={[styles.selectionLabel, isSelected ? styles.selectionLabelActive : null]}>
-                        {underDevelopment ? 'Coming soon' : isSelected ? 'Selected' : 'Tap to select'}
+                        {underDevelopment ? t('mindspace.coming_soon') : isSelected ? t('mindspace.selected') : t('mindspace.tap_to_select')}
                     </Text>
-                    <Text style={styles.longPressHint}>{underDevelopment ? 'Not selectable yet' : 'Long press to start'}</Text>
+                    <Text style={styles.longPressHint}>{underDevelopment ? t('mindspace.not_selectable') : t('mindspace.long_press_start')}</Text>
                 </View>
             </Pressable>
         );
@@ -121,28 +123,28 @@ export default function CopingToolkitScreen() {
             </View>
 
             <SafeAreaView style={styles.safeArea}>
-                <Text style={[styles.title, { color: theme.colors.textPrimary }]}>MindSpace</Text>
+                <Text style={[styles.title, { color: theme.colors.textPrimary }]}>{t('mindspace.title')}</Text>
                 <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
-                    Pick from the list. Selected action starts on a full guide page.
+                    {t('mindspace.subtitle')}
                 </Text>
 
                 <Pressable onPress={startSelectedAction} style={({ pressed }) => [styles.startButton, pressed ? styles.startButtonPressed : null]}>
-                    <Text style={styles.startButtonText}>Start: {selectedAction.title}</Text>
+                    <Text style={styles.startButtonText}>{t('mindspace.start_prefix')}{t(`mindspace.actions.${selectedAction.id}.title`)}</Text>
                 </Pressable>
 
                 <Pressable onPress={openMoodMaps} style={({ pressed }) => [styles.moodMapsCard, pressed ? styles.moodMapsCardPressed : null]}>
                     <View style={styles.cardHeaderRow}>
-                        <Text style={styles.toolCategory}>Environment Tool</Text>
+                        <Text style={styles.toolCategory}>{t('mindspace.env_tool')}</Text>
                         <Text style={styles.moodMapsBadge}>MoodMaps</Text>
                     </View>
                     <Text style={styles.toolTitle}>MoodMaps</Text>
-                    <Text style={styles.moodMapsSubtitle}>Explore how places feel emotionally</Text>
+                    <Text style={styles.moodMapsSubtitle}>{t('mindspace.moodmaps_subtitle')}</Text>
                     <Text style={styles.toolSummary}>
-                        Discover emotional experiences people associate with places and find calm or peaceful locations.
+                        {t('mindspace.moodmaps_summary')}
                     </Text>
                     <View style={styles.cardFooterRow}>
-                        <Text style={styles.selectionLabelActive}>Special in MindSpace</Text>
-                        <Text style={styles.longPressHint}>Tap to open website</Text>
+                        <Text style={styles.selectionLabelActive}>{t('mindspace.special')}</Text>
+                        <Text style={styles.longPressHint}>{t('mindspace.tap_open_web')}</Text>
                     </View>
                 </Pressable>
 

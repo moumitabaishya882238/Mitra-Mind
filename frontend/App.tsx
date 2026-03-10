@@ -6,6 +6,7 @@ import { CrisisProvider } from './src/context/CrisisContext';
 import { ThemeProvider } from './src/context/ThemeContext';
 import apiClient from './src/api/client';
 import { startOfflineSync } from './src/offline/offlineEngine';
+import './src/services/i18n';
 
 const App = () => {
     useEffect(() => {
