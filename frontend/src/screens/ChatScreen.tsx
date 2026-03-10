@@ -59,7 +59,7 @@ function getMoodColor(moodCategory: string) {
 }
 
 export default function ChatScreen() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const { setCrisisAlert } = useCrisis();
     const { theme } = useAppTheme();
     const [sessionId, setSessionId] = useState('anonymous-device');
@@ -324,7 +324,7 @@ export default function ChatScreen() {
         try {
             const response = await apiClient.post('/api/chat', {
                 message: userMsg.text,
-                language: 'en',
+                language: i18n.language || 'en',
                 sessionId,
                 conversationHistory: messages.map(m => ({
                     role: m.sender === 'user' ? 'user' : 'model',
@@ -343,7 +343,7 @@ export default function ChatScreen() {
             // Play TTS if enabled
             if (enableTts) {
                 try {
-                    await voiceOutput.speak(aiReply);
+                    await voiceOutput.speak(aiReply, i18n.language);
                 } catch (err) {
                     console.warn('TTS failed silently, continuing:', err);
                 }
@@ -380,7 +380,7 @@ export default function ChatScreen() {
 
             await enqueueOfflineChat({
                 message: userMsg.text,
-                language: 'en',
+                language: i18n.language || 'en',
                 sessionId,
             });
 
@@ -395,7 +395,7 @@ export default function ChatScreen() {
             // Play TTS for offline response if enabled
             if (enableTts) {
                 try {
-                    await voiceOutput.speak(offline.reply);
+                    await voiceOutput.speak(offline.reply, i18n.language);
                 } catch (err) {
                     console.warn('TTS failed silently for offline response:', err);
                 }
