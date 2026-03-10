@@ -45,6 +45,7 @@ export class ChatService {
       APP INTEGRATION RULES:
       1. If the user mentions wanting to talk to a real person, feeling lonely, or needing someone to listen to them for a while, YOU MUST kindly suggest they visit the "Community" tab to talk with peers, or connect with our dedicated "Listeners" available in the ecosystem.
       2. If the user mentions wanting to go somewhere, asking for places with specific vibes, or seeking a physical environment to match their mood, YOU MUST suggest they explore "MoodMaps" by tapping on the "MindSpace" section.
+      3. If the user explicitly asks you to forget your conversation history, delete the history, or forget whatever you talked about, you MUST include the exact exact token '[CLEAR_HISTORY]' anywhere in your response, and confirm to them you have cleared your memory.
 
       Context: ${behavioralInjections}.
       Provide supportive, actionable mental health coaching. 
@@ -52,13 +53,30 @@ export class ChatService {
     `;
 
         // 4. Call Gemini via the Rotated Key Client
-        const reply = await geminiClient.generateResponse(message, trimmedHistory, systemInstruction);
+        let reply = await geminiClient.generateResponse(message, trimmedHistory, systemInstruction);
+        let clearHistory = false;
+
+        // Check if AI included the clear history token
+        if (reply.includes('[CLEAR_HISTORY]')) {
+            clearHistory = true;
+            reply = reply.replace('[CLEAR_HISTORY]', '').trim();
+            // Delete history for this session from DB
+            try {
+                await ChatMessage.deleteMany({ sessionId });
+                console.log(`[ChatService] Cleared database history for session ${sessionId}`);
+            } catch (err) {
+                console.error("Failed to clear history from DB", err);
+            }
+        }
 
         // 5. Background Tasks (Log to DB)
         // We do this asynchronously or after responding to keep the API fast.
+
+        // Log the current message, unless we just cleared history, in which case we only log the bot's confirmation 
+        // actually we can log both to start a new history chapter.
         this.logActivity(sessionId, message, reply, language).catch(err => console.error("Logging error:", err));
 
-        return reply;
+        return { reply, clearHistory };
     }
 
     /**

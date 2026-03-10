@@ -16,6 +16,7 @@ import MessageBubble from '../components/community/MessageBubble';
 import { useAppTheme } from '../context/ThemeContext';
 import communityService, { ConversationItem, DirectMessageItem, ModerationResult } from '../services/communityService';
 import { connectSocket, disconnectSocket, offNewDirectMessage, onNewDirectMessage } from '../services/socketService';
+import LinearGradient from 'react-native-linear-gradient';
 
 const STORAGE_SESSION_KEY = 'mh-session-id';
 
@@ -25,7 +26,7 @@ type Props = {
     embedded?: boolean;
 };
 
-export default function MessagesScreen({ route }: Props) {
+export default function MessagesScreen({ route, embedded }: Props) {
     const { theme } = useAppTheme();
     const [sessionId, setSessionId] = useState('anonymous-device');
     const [peerId, setPeerId] = useState<string | null>(route?.params?.peerId || null);
@@ -36,6 +37,7 @@ export default function MessagesScreen({ route }: Props) {
     const [moderation, setModeration] = useState<ModerationResult | null>(null);
 
     const isLight = theme.id === 'matrix-white';
+    const isEmbedded = embedded || route?.params?.embedded;
 
     const ensureSession = useCallback(async () => {
         const stored = (await AsyncStorage.getItem(STORAGE_SESSION_KEY)) || 'anonymous-device';
@@ -138,68 +140,86 @@ export default function MessagesScreen({ route }: Props) {
     }, [peerId, peerName]);
 
     return (
-        <View style={[styles.container, { backgroundColor: 'transparent' }]}>
+        <View style={[styles.container, { backgroundColor: isEmbedded ? 'transparent' : '#020617' }]}>
             <StatusBar translucent backgroundColor="transparent" barStyle={theme.statusBarStyle} />
-            <SafeAreaView style={styles.safeArea}>
-            <View style={[styles.headerCard, { borderColor: theme.colors.borderSoft, backgroundColor: theme.colors.cardBg }]}>
-                <Text style={[styles.title, { color: theme.colors.textPrimary }]}>Direct Messages</Text>
-                <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>{subtitle}</Text>
-            </View>
 
-            {!peerId ? (
-                <FlatList
-                    data={conversations}
-                    keyExtractor={(item) => item.conversationId}
-                    showsVerticalScrollIndicator={false}
-                    ListEmptyComponent={<Text style={[styles.emptyText, { color: theme.colors.textSecondary }]}>No messages yet. Start from a post.</Text>}
-                    renderItem={({ item }) => (
-                        <Pressable
-                            style={[styles.conversationItem, { borderColor: theme.colors.borderSoft, backgroundColor: theme.colors.cardBg }]}
-                            onPress={() => loadThread(item.peerId)}
-                        >
-                            <View style={styles.conversationTopRow}>
-                                <Text style={[styles.peerName, { color: theme.colors.textPrimary }]}>{item.peerAnonymousUsername}</Text>
-                                <Text style={[styles.openTag, { color: theme.colors.accent, borderColor: theme.colors.accent }]}>Open</Text>
-                            </View>
-                            <Text style={[styles.previewText, { color: theme.colors.textSecondary }]} numberOfLines={2}>{item.lastMessage}</Text>
-                        </Pressable>
-                    )}
-                />
-            ) : (
-                <KeyboardAvoidingView style={styles.threadWrap} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-                    <FlatList
-                        data={messages}
-                        keyExtractor={(item) => item.id}
-                        renderItem={({ item }) => <MessageBubble item={item} theme={theme} />}
-                        contentContainerStyle={styles.messagesList}
-                        showsVerticalScrollIndicator={false}
+            {!isEmbedded && (
+                <View style={styles.backgroundLayer}>
+                    <LinearGradient
+                        colors={['#060B26', '#09103D', '#120D31', '#050314']}
+                        start={{ x: 0.5, y: 0 }}
+                        end={{ x: 0.5, y: 1 }}
+                        style={styles.mainGradient}
                     />
-
-                    {moderation?.flagged ? (
-                        <View style={[styles.flagBox, { borderColor: theme.colors.danger, backgroundColor: theme.colors.cardBg }]}>
-                            <Text style={[styles.flagTitle, { color: theme.colors.danger }]}>Safety Notice</Text>
-                            <Text style={[styles.flagText, { color: theme.colors.textSecondary }]} numberOfLines={2}>
-                                {moderation.empatheticResponse}
-                            </Text>
-                        </View>
-                    ) : null}
-
-                    <View style={[styles.composer, { borderColor: theme.colors.borderSoft, backgroundColor: theme.colors.cardBg }]}>
-                        <TextInput
-                            value={inputText}
-                            onChangeText={setInputText}
-                            placeholder="Write a private message..."
-                            placeholderTextColor={isLight ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.5)'}
-                            style={[styles.input, { color: isLight ? '#000000' : theme.colors.textPrimary }]}
-                        />
-                        <View style={styles.composerActions}>
-                            <Pressable onPress={send} style={[styles.sendButton, { backgroundColor: theme.colors.accent }]}>
-                                <Text style={styles.sendButtonText}>Send</Text>
-                            </Pressable>
-                        </View>
-                    </View>
-                </KeyboardAvoidingView>
+                    <LinearGradient
+                        colors={theme.gradients.veil}
+                        start={{ x: 0.1, y: 0 }}
+                        end={{ x: 0.9, y: 1 }}
+                        style={styles.gradientVeil}
+                    />
+                </View>
             )}
+
+            <SafeAreaView style={styles.safeArea}>
+                <View style={[styles.headerCard, { borderColor: 'rgba(142, 161, 255, 0.25)', backgroundColor: 'rgba(24, 32, 66, 0.55)' }]}>
+                    <Text style={styles.title}>Direct Messages</Text>
+                    <Text style={styles.subtitle}>{subtitle}</Text>
+                </View>
+
+                {!peerId ? (
+                    <FlatList
+                        data={conversations}
+                        keyExtractor={(item) => item.conversationId}
+                        showsVerticalScrollIndicator={false}
+                        ListEmptyComponent={<Text style={styles.emptyText}>No messages yet. Start from a post.</Text>}
+                        renderItem={({ item }) => (
+                            <Pressable
+                                style={styles.conversationItem}
+                                onPress={() => loadThread(item.peerId)}
+                            >
+                                <View style={styles.conversationTopRow}>
+                                    <Text style={styles.peerName}>{item.peerAnonymousUsername}</Text>
+                                    <Text style={styles.openTag}>Open</Text>
+                                </View>
+                                <Text style={styles.previewText} numberOfLines={2}>{item.lastMessage}</Text>
+                            </Pressable>
+                        )}
+                    />
+                ) : (
+                    <KeyboardAvoidingView style={styles.threadWrap} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+                        <FlatList
+                            data={messages}
+                            keyExtractor={(item) => item.id}
+                            renderItem={({ item }) => <MessageBubble item={item} theme={theme} />}
+                            contentContainerStyle={styles.messagesList}
+                            showsVerticalScrollIndicator={false}
+                        />
+
+                        {moderation?.flagged ? (
+                            <View style={[styles.flagBox, { borderColor: theme.colors.danger, backgroundColor: theme.colors.cardBg }]}>
+                                <Text style={[styles.flagTitle, { color: theme.colors.danger }]}>Safety Notice</Text>
+                                <Text style={[styles.flagText, { color: theme.colors.textSecondary }]} numberOfLines={2}>
+                                    {moderation.empatheticResponse}
+                                </Text>
+                            </View>
+                        ) : null}
+
+                        <View style={styles.composer}>
+                            <TextInput
+                                value={inputText}
+                                onChangeText={setInputText}
+                                placeholder="Write a private message..."
+                                placeholderTextColor={'rgba(255,255,255,0.45)'}
+                                style={styles.input}
+                            />
+                            <View style={styles.composerActions}>
+                                <Pressable onPress={send} style={styles.sendButton}>
+                                    <Text style={styles.sendButtonText}>Send</Text>
+                                </Pressable>
+                            </View>
+                        </View>
+                    </KeyboardAvoidingView>
+                )}
             </SafeAreaView>
         </View>
     );
@@ -209,6 +229,18 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
     },
+    backgroundLayer: {
+        ...StyleSheet.absoluteFillObject,
+        overflow: 'hidden',
+    },
+    mainGradient: {
+        ...StyleSheet.absoluteFillObject,
+        opacity: 1,
+    },
+    gradientVeil: {
+        ...StyleSheet.absoluteFillObject,
+        opacity: 0.9,
+    },
     safeArea: {
         flex: 1,
         paddingHorizontal: 12,
@@ -216,51 +248,67 @@ const styles = StyleSheet.create({
     },
     headerCard: {
         borderWidth: 1,
-        borderRadius: 12,
-        paddingVertical: 10,
-        paddingHorizontal: 12,
-        marginBottom: 10,
+        borderRadius: 16,
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        marginBottom: 16,
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 6,
+        elevation: 4,
     },
     title: {
         fontSize: 20,
         fontWeight: '800',
-        marginBottom: 2,
+        marginBottom: 4,
+        color: '#FFFFFF',
     },
     subtitle: {
         fontSize: 13,
-        marginBottom: 10,
+        marginBottom: 4,
+        color: 'rgba(235, 231, 255, 0.82)',
     },
     emptyText: {
         fontSize: 13,
-        marginTop: 8,
+        marginTop: 14,
+        textAlign: 'center',
+        color: 'rgba(238, 243, 255, 0.65)',
     },
     conversationItem: {
+        backgroundColor: 'rgba(24, 32, 66, 0.45)', // Deep space glass
         borderWidth: 1,
-        borderRadius: 12,
-        padding: 12,
-        marginBottom: 10,
+        borderColor: 'rgba(142, 161, 255, 0.12)',
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 14,
     },
     conversationTopRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        marginBottom: 8,
     },
     peerName: {
-        fontSize: 14,
+        fontSize: 15,
         fontWeight: '700',
-        marginBottom: 4,
+        color: '#FFFFFF',
     },
     openTag: {
         borderWidth: 1,
         borderRadius: 999,
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        fontSize: 11,
+        paddingHorizontal: 10,
+        paddingVertical: 3,
+        fontSize: 10,
         fontWeight: '700',
+        color: 'rgba(143, 117, 255, 0.9)',
+        borderColor: 'rgba(143, 117, 255, 0.4)',
+        backgroundColor: 'rgba(92, 64, 232, 0.15)',
     },
     previewText: {
-        fontSize: 12,
+        fontSize: 13,
         lineHeight: 18,
+        color: 'rgba(226, 233, 255, 0.65)',
     },
     threadWrap: {
         flex: 1,
@@ -284,16 +332,20 @@ const styles = StyleSheet.create({
         fontSize: 12,
     },
     composer: {
+        backgroundColor: 'rgba(23, 28, 56, 0.65)',
         borderWidth: 1,
-        borderRadius: 12,
-        padding: 10,
-        marginBottom: 8,
+        borderColor: 'rgba(142, 161, 255, 0.15)',
+        borderRadius: 18,
+        paddingHorizontal: 14,
+        paddingTop: 12,
+        paddingBottom: 10,
+        marginBottom: 12,
     },
     input: {
         minHeight: 40,
-        paddingHorizontal: 8,
         fontSize: 14,
         lineHeight: 20,
+        color: '#FFFFFF',
     },
     composerActions: {
         marginTop: 6,
@@ -302,13 +354,22 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     sendButton: {
-        borderRadius: 8,
-        paddingHorizontal: 14,
+        backgroundColor: 'rgba(92, 64, 232, 0.85)', // Premium purple core
+        borderWidth: 1,
+        borderColor: 'rgba(223, 214, 255, 0.25)', // Brighter glowing edge
+        borderRadius: 10,
+        paddingHorizontal: 16,
         paddingVertical: 8,
+        shadowColor: '#8B5CF6',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
+        elevation: 3,
     },
     sendButtonText: {
         color: '#FFFFFF',
-        fontSize: 12,
+        fontSize: 13,
         fontWeight: '800',
+        letterSpacing: 0.5,
     },
 });

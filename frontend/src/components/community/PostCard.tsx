@@ -41,7 +41,7 @@ function formatTime(value: string) {
     const ms = new Date(value).getTime();
     if (!ms) return 'now';
     const diffMin = Math.max(1, Math.floor((Date.now() - ms) / 60000));
-    if (diffMin < 60) return `${diffMin}m`; 
+    if (diffMin < 60) return `${diffMin}m`;
     const diffHr = Math.floor(diffMin / 60);
     if (diffHr < 24) return `${diffHr}h`;
     const diffDay = Math.floor(diffHr / 24);
@@ -51,26 +51,24 @@ function formatTime(value: string) {
 export default function PostCard({ post, theme, onOpen, onToggleSave, onDelete, onMessageAuthor }: Props) {
     const isLight = theme.id === 'matrix-white';
     const moodColors = post.mood ? getMoodColor(post.mood) : null;
-    
+
     return (
         <Pressable
             style={[
                 styles.card,
                 {
-                    backgroundColor: theme.colors.cardBg,
-                    borderColor: theme.colors.borderSoft,
-                    borderLeftColor: moodColors?.accent || theme.colors.borderSoft,
-                    borderLeftWidth: moodColors ? 4 : 1,
+                    borderLeftColor: moodColors?.accent || 'rgba(142, 161, 255, 0.4)',
+                    borderLeftWidth: moodColors ? 4 : 2,
                 },
             ]}
             onPress={onOpen}
         >
             <View style={styles.headerRow}>
-                <Text style={[styles.username, { color: theme.colors.textPrimary }]}>{post.anonymousUsername}</Text>
-                <Text style={[styles.timeText, { color: theme.colors.textSecondary }]}>{formatTime(post.createdAt)}</Text>
+                <Text style={styles.username}>{post.anonymousUsername}</Text>
+                <Text style={styles.timeText}>{formatTime(post.createdAt)}</Text>
             </View>
 
-            <Text style={[styles.message, { color: isLight ? '#000000' : theme.colors.textPrimary }]}>{post.message}</Text>
+            <Text style={styles.message}>{post.message}</Text>
 
             {post.mood && moodColors ? (
                 <View style={[styles.moodTag, { backgroundColor: moodColors.bg, borderColor: moodColors.accent }]}>
@@ -113,28 +111,38 @@ export default function PostCard({ post, theme, onOpen, onToggleSave, onDelete, 
 
 const styles = StyleSheet.create({
     card: {
+        backgroundColor: 'rgba(24, 32, 66, 0.45)', // Deep space glass
         borderWidth: 1,
-        borderRadius: 14,
-        padding: 12,
-        marginBottom: 12,
+        borderColor: 'rgba(142, 161, 255, 0.12)',
+        borderRadius: 16,
+        padding: 16, // Smoother internal padding
+        marginBottom: 14,
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+        elevation: 4,
     },
     headerRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 6,
+        marginBottom: 8,
     },
     username: {
         fontSize: 14,
         fontWeight: '700',
+        color: '#FFFFFF', // Bright title
     },
     timeText: {
         fontSize: 12,
+        color: 'rgba(226, 233, 255, 0.6)',
     },
     message: {
         fontSize: 15,
         lineHeight: 22,
-        marginBottom: 8,
+        marginBottom: 10,
+        color: 'rgba(238, 243, 255, 0.94)', // Soft glowing readability
     },
     moodTag: {
         alignSelf: 'flex-start',

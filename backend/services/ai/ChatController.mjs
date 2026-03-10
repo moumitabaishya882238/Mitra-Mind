@@ -21,11 +21,12 @@ export class ChatController {
         }
 
         try {
-            const reply = await chatService.processChat(sessionId, message, conversationHistory, language);
+            const result = await chatService.processChat(sessionId, message, conversationHistory, language);
 
             res.json({
                 success: true,
-                reply,
+                reply: result.reply,
+                clearHistory: result.clearHistory,
                 sessionId
             });
         } catch (error) {

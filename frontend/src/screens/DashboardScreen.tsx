@@ -8,6 +8,8 @@ import {
     Pressable,
     ScrollView,
     Linking,
+    Animated,
+    Easing,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -111,6 +113,9 @@ export default function DashboardScreen() {
     const [insights, setInsights] = useState<InsightResponse>(defaultInsights);
     const [loading, setLoading] = useState(false);
     const [pendingSyncCount, setPendingSyncCount] = useState(0);
+    const [graphType, setGraphType] = useState<'bar' | 'line'>('line');
+    const [timeRange, setTimeRange] = useState<'weekly' | 'daily' | 'hourly'>('weekly');
+    const [chartLayout, setChartLayout] = useState({ width: 0, height: 100 });
 
     const loadInsights = useCallback(async () => {
         setLoading(true);
@@ -144,10 +149,33 @@ export default function DashboardScreen() {
         }, [loadInsights, clearCrisisAlert])
     );
 
+    // Star breathing/twinkling background animation
+    const [starTwinkleAnim] = useState(new Animated.Value(0.3));
+    React.useEffect(() => {
+        const loop = Animated.loop(
+            Animated.sequence([
+                Animated.timing(starTwinkleAnim, {
+                    toValue: 0.8,
+                    duration: 3500,
+                    easing: Easing.inOut(Easing.sin),
+                    useNativeDriver: true,
+                }),
+                Animated.timing(starTwinkleAnim, {
+                    toValue: 0.3,
+                    duration: 4000,
+                    easing: Easing.inOut(Easing.sin),
+                    useNativeDriver: true,
+                }),
+            ])
+        );
+        loop.start();
+        return () => loop.stop();
+    }, [starTwinkleAnim]);
+
     const stressPercent = Math.max(10, Math.min(100, insights.latest.stressScore * 10));
     const energyPercent = Math.max(10, Math.min(100, (10 - insights.latest.stressScore) * 10));
 
-    const trendBars = (insights.trend.length ? insights.trend : [
+    const baseTrend: any[] = insights.trend.length ? insights.trend : [
         { score: 5, moodCategory: 'Neutral' },
         { score: 6, moodCategory: 'Stressed' },
         { score: 4, moodCategory: 'Calm' },
@@ -155,7 +183,43 @@ export default function DashboardScreen() {
         { score: 5, moodCategory: 'Neutral' },
         { score: 6, moodCategory: 'Stressed' },
         { score: 5, moodCategory: 'Neutral' },
-    ]).slice(-7);
+    ];
+
+    // Generate mock granular data based on baseTrend
+    const getTrendDataForRange = () => {
+        if (timeRange === 'weekly') {
+            return baseTrend.slice(-7);
+        }
+        if (timeRange === 'daily') {
+            // Expand to 24 hours (simulated hourly data)
+            const dailyData = [];
+            for (let i = 0; i < 24; i++) {
+                const baseScore = baseTrend[baseTrend.length - 1].score;
+                const variation = Math.sin(i / 3) * 2; // Create a wave pattern
+                dailyData.push({
+                    score: Math.max(1, Math.min(10, baseScore + variation)),
+                    moodCategory: (baseScore + variation) > 6 ? 'Stressed' : 'Calm'
+                });
+            }
+            return dailyData;
+        }
+        if (timeRange === 'hourly') {
+            // Expand to 60 minutes (simulated minute data for last hour)
+            const hourlyData = [];
+            for (let i = 0; i < 60; i += 5) {
+                const baseScore = baseTrend[baseTrend.length - 1].score;
+                const variation = (Math.random() * 2) - 1; // Slight rapid variations
+                hourlyData.push({
+                    score: Math.max(1, Math.min(10, baseScore + variation)),
+                    moodCategory: baseScore > 5 ? 'Anxious' : 'Neutral'
+                });
+            }
+            return hourlyData;
+        }
+        return baseTrend;
+    };
+
+    const trendBars = getTrendDataForRange();
 
     const activeMood = normalizeMoodForActivities(insights.latest.moodCategory);
 
@@ -180,12 +244,13 @@ export default function DashboardScreen() {
     const upcomingActivities = activityCandidates.filter((item) => item.availability === 'under-development');
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.colors.screenBase }]}>
+        <View style={[styles.container, { backgroundColor: '#020617' }]}>
             <StatusBar translucent backgroundColor="transparent" barStyle={theme.statusBarStyle} />
 
             <View style={styles.backgroundLayer}>
                 <LinearGradient
-                    colors={theme.gradients.main}
+                    // Richer, deeper space colors match ChatScreen
+                    colors={['#060B26', '#09103D', '#120D31', '#050314']}
                     start={{ x: 0.5, y: 0 }}
                     end={{ x: 0.5, y: 1 }}
                     style={styles.mainGradient}
@@ -196,6 +261,38 @@ export default function DashboardScreen() {
                     end={{ x: 0.9, y: 1 }}
                     style={styles.gradientVeil}
                 />
+                <Animated.View style={[styles.star, styles.star1, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star2, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star3, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star4, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star5, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star6, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star7, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star8, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star9, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star10, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star11, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star12, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star13, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star14, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star15, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star16, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star17, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star18, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star19, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star20, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star21, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star22, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star23, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star24, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star25, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star26, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star27, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star28, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star29, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star30, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star31, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star32, { opacity: starTwinkleAnim }]} />
             </View>
 
             <SafeAreaView style={styles.safeArea}>
@@ -215,8 +312,6 @@ export default function DashboardScreen() {
                             <Text style={styles.syncPendingText}>{t('dashboard.offline_items', { count: pendingSyncCount })}</Text>
                         </View>
                     ) : null}
-
-                    <SupportRecommendationCard />
 
                     <View style={styles.emotionalStatusBar}>
                         <View style={styles.statusDotContainer}>
@@ -336,20 +431,111 @@ export default function DashboardScreen() {
                     </View>
 
                     <View style={styles.analyticsCard}>
-                        <View style={styles.cardHeader}>
-                            <Text style={styles.cardTitle}>{t('dashboard.weekly_mood_trend')}</Text>
-                            <Text style={styles.cardDate}>{t('dashboard.last_7_days')}</Text>
+                        <View style={styles.graphHeaderRow}>
+                            <View>
+                                <Text style={styles.cardTitle}>Mood Trend</Text>
+                                <View style={styles.timeRangeSelector}>
+                                    <Pressable onPress={() => setTimeRange('weekly')}>
+                                        <Text style={[styles.timeRangeText, timeRange === 'weekly' && styles.timeRangeTextActive]}>Weekly</Text>
+                                    </Pressable>
+                                    <View style={styles.timeRangeDivider} />
+                                    <Pressable onPress={() => setTimeRange('daily')}>
+                                        <Text style={[styles.timeRangeText, timeRange === 'daily' && styles.timeRangeTextActive]}>Daily</Text>
+                                    </Pressable>
+                                    <View style={styles.timeRangeDivider} />
+                                    <Pressable onPress={() => setTimeRange('hourly')}>
+                                        <Text style={[styles.timeRangeText, timeRange === 'hourly' && styles.timeRangeTextActive]}>Hourly</Text>
+                                    </Pressable>
+                                </View>
+                            </View>
+                            <View style={styles.graphToggleSlider}>
+                                <Pressable
+                                    style={[styles.graphToggleButton, graphType === 'bar' && styles.graphToggleButtonActive]}
+                                    onPress={() => setGraphType('bar')}
+                                >
+                                    <Text style={[styles.graphToggleText, graphType === 'bar' && styles.graphToggleTextActive]}>Bar</Text>
+                                </Pressable>
+                                <Pressable
+                                    style={[styles.graphToggleButton, graphType === 'line' && styles.graphToggleButtonActive]}
+                                    onPress={() => setGraphType('line')}
+                                >
+                                    <Text style={[styles.graphToggleText, graphType === 'line' && styles.graphToggleTextActive]}>Line</Text>
+                                </Pressable>
+                            </View>
                         </View>
                         <View style={styles.graphPlaceholder}>
-                            <View style={styles.barChart}>
-                                {trendBars.map((entry, idx) => {
-                                    const heightPercent = Math.max(20, Math.min(95, (entry.score / 10) * 100));
-                                    const barColor = entry.moodCategory ? getMoodColor(entry.moodCategory) : 'rgba(95, 129, 255, 0.6)';
-                                    return (
-                                        <View key={`${idx}-${heightPercent}`} style={[styles.bar, { height: `${heightPercent}%`, backgroundColor: barColor + '99' }]} />
-                                    );
-                                })}
-                            </View>
+                            {graphType === 'bar' ? (
+                                <View style={styles.barChart}>
+                                    {trendBars.map((entry, idx) => {
+                                        const heightPercent = Math.max(20, Math.min(95, (entry.score / 10) * 100));
+                                        const barColor = entry.moodCategory ? getMoodColor(entry.moodCategory) : 'rgba(95, 129, 255, 0.6)';
+                                        return (
+                                            <View key={`${idx}-${heightPercent}`} style={[styles.bar, { height: `${heightPercent}%`, backgroundColor: barColor + '99' }]} />
+                                        );
+                                    })}
+                                </View>
+                            ) : (
+                                <View
+                                    style={styles.lineChartContainer}
+                                    onLayout={(e) => setChartLayout({ width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height })}
+                                >
+                                    {chartLayout.width > 0 && trendBars.map((entry, idx) => {
+                                        const x = (idx / Math.max(1, trendBars.length - 1)) * chartLayout.width;
+                                        const yPercent = 100 - Math.max(10, Math.min(95, (entry.score / 10) * 100));
+                                        const y = (yPercent / 100) * chartLayout.height;
+                                        const dotColor = entry.moodCategory ? getMoodColor(entry.moodCategory) : 'rgba(95, 129, 255, 1)';
+
+                                        // Draw connecting line to previous point
+                                        let lineFragment = null;
+                                        if (idx > 0) {
+                                            const prevEntry = trendBars[idx - 1];
+                                            const prevX = ((idx - 1) / Math.max(1, trendBars.length - 1)) * chartLayout.width;
+                                            const prevYPercent = 100 - Math.max(10, Math.min(95, (prevEntry.score / 10) * 100));
+                                            const prevY = (prevYPercent / 100) * chartLayout.height;
+
+                                            // Calculate distance and angle for CSS line
+                                            const dx = x - prevX;
+                                            const dy = y - prevY;
+                                            const length = Math.sqrt(dx * dx + dy * dy);
+                                            const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+
+                                            const cx = (prevX + x) / 2;
+                                            const cy = (prevY + y) / 2;
+
+                                            lineFragment = (
+                                                <View
+                                                    key={`line-${idx}`}
+                                                    style={[
+                                                        styles.connectingLine,
+                                                        {
+                                                            left: cx - length / 2,
+                                                            top: cy - 1, // height is 2, so center is at 1
+                                                            width: length,
+                                                            transform: [
+                                                                { rotate: `${angle}deg` }
+                                                            ]
+                                                        }
+                                                    ]}
+                                                />
+                                            );
+                                        }
+
+                                        return (
+                                            <React.Fragment key={`frag-${idx}`}>
+                                                {lineFragment}
+                                                <View
+                                                    key={`dot-${idx}`}
+                                                    style={[
+                                                        styles.lineChartDot,
+                                                        { left: x, top: y, backgroundColor: dotColor, shadowColor: dotColor }
+                                                    ]}
+                                                />
+                                            </React.Fragment>
+                                        );
+                                    })}
+                                </View>
+                            )}
+
                             <View style={styles.trendLegend}>
                                 <Text style={styles.graphNote}>
                                     {t('dashboard.trend_legend', { avg: insights.summary.averageStress, count: insights.summary.entryCount })}
@@ -429,6 +615,8 @@ export default function DashboardScreen() {
                         </View>
                     </View>
 
+                    <SupportRecommendationCard />
+
                     <View style={styles.analyticsCard}>
                         <View style={styles.cardHeader}>
                             <Text style={styles.cardTitle}>{t('dashboard.interaction_history')}</Text>
@@ -459,18 +647,63 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#000',
+        backgroundColor: '#070D2B',
     },
     backgroundLayer: {
         ...StyleSheet.absoluteFillObject,
-        zIndex: -1,
+        overflow: 'hidden',
     },
     mainGradient: {
         ...StyleSheet.absoluteFillObject,
+        opacity: 1,
     },
     gradientVeil: {
         ...StyleSheet.absoluteFillObject,
+        opacity: 0.9,
     },
+    star: {
+        position: 'absolute',
+        width: 2.2,
+        height: 2.2,
+        borderRadius: 2,
+        backgroundColor: '#FFFFFF',
+        shadowColor: '#FFFFFF',
+        shadowOpacity: 0.8,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    star1: { top: '12%', left: '18%' },
+    star2: { top: '16%', left: '72%' },
+    star3: { top: '22%', left: '38%' },
+    star4: { top: '28%', left: '86%' },
+    star5: { top: '36%', left: '14%' },
+    star6: { top: '44%', left: '64%' },
+    star7: { top: '58%', left: '24%' },
+    star8: { top: '68%', left: '78%' },
+    star9: { top: '82%', left: '34%' },
+    star10: { top: '88%', left: '62%' },
+    star11: { top: '14%', left: '52%' },
+    star12: { top: '31%', left: '9%' },
+    star13: { top: '47%', left: '84%' },
+    star14: { top: '63%', left: '56%' },
+    star15: { top: '76%', left: '12%' },
+    star16: { top: '92%', left: '80%' },
+    star17: { top: '8%', left: '44%' },
+    star18: { top: '11%', left: '81%' },
+    star19: { top: '18%', left: '27%' },
+    star20: { top: '24%', left: '63%' },
+    star21: { top: '33%', left: '49%' },
+    star22: { top: '39%', left: '77%' },
+    star23: { top: '46%', left: '19%' },
+    star24: { top: '53%', left: '69%' },
+    star25: { top: '61%', left: '8%' },
+    star26: { top: '67%', left: '42%' },
+    star27: { top: '73%', left: '86%' },
+    star28: { top: '79%', left: '58%' },
+    star29: { top: '84%', left: '21%' },
+    star30: { top: '89%', left: '47%' },
+    star31: { top: '94%', left: '67%' },
+    star32: { top: '97%', left: '33%' },
     safeArea: {
         flex: 1,
     },
@@ -488,14 +721,19 @@ const styles = StyleSheet.create({
     emotionalStatusBar: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(143, 117, 255, 0.15)',
+        backgroundColor: 'rgba(24, 32, 66, 0.65)', // Deep glass blue
         borderWidth: 1,
-        borderColor: 'rgba(223, 214, 255, 0.2)',
-        borderRadius: 12,
-        paddingVertical: 10,
-        paddingHorizontal: 14,
-        marginBottom: 18,
-        gap: 10,
+        borderColor: 'rgba(142, 161, 255, 0.15)',
+        borderRadius: 20,
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        marginBottom: 20,
+        gap: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+        elevation: 8,
     },
     statusDotContainer: {
         flexDirection: 'row',
@@ -587,13 +825,18 @@ const styles = StyleSheet.create({
     },
     startConversationButton: {
         width: '100%',
-        backgroundColor: 'rgba(143, 117, 255, 0.24)',
+        backgroundColor: 'rgba(92, 64, 232, 0.85)', // Premium purple core
         borderWidth: 1,
-        borderColor: 'rgba(223, 214, 255, 0.32)',
-        borderRadius: 18,
-        paddingVertical: 18,
-        paddingHorizontal: 16,
-        marginBottom: 26,
+        borderColor: 'rgba(223, 214, 255, 0.45)', // Brighter glowing edge
+        borderRadius: 24,
+        paddingVertical: 20,
+        paddingHorizontal: 20,
+        marginBottom: 28,
+        shadowColor: '#8B5CF6',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.45,
+        shadowRadius: 16,
+        elevation: 10,
     },
     buttonContent: {
         flexDirection: 'row',
@@ -627,12 +870,17 @@ const styles = StyleSheet.create({
         marginTop: 8,
     },
     analyticsCard: {
-        backgroundColor: 'rgba(143, 117, 255, 0.2)',
+        backgroundColor: 'rgba(24, 32, 66, 0.55)', // Deep space glass
         borderWidth: 1,
-        borderColor: 'rgba(223, 214, 255, 0.26)',
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 14,
+        borderColor: 'rgba(142, 161, 255, 0.12)',
+        borderRadius: 22,
+        padding: 20,
+        marginBottom: 16,
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.25,
+        shadowRadius: 10,
+        elevation: 5,
     },
     crisisCard: {
         backgroundColor: 'rgba(183, 72, 72, 0.24)',
@@ -769,9 +1017,6 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     cardHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
         marginBottom: 12,
     },
     cardTitle: {
@@ -782,6 +1027,57 @@ const styles = StyleSheet.create({
     cardDate: {
         fontSize: 12,
         color: 'rgba(226, 233, 255, 0.65)',
+    },
+    graphHeaderRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 16,
+    },
+    timeRangeSelector: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 4,
+        gap: 8,
+    },
+    timeRangeText: {
+        fontSize: 12,
+        color: 'rgba(226, 233, 255, 0.45)', // subtly dimmed when inactive
+        fontWeight: '500',
+    },
+    timeRangeTextActive: {
+        color: 'rgba(143, 117, 255, 0.95)', // premium active purple
+        fontWeight: '700',
+    },
+    timeRangeDivider: {
+        width: 1,
+        height: 10,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    },
+    graphToggleSlider: {
+        flexDirection: 'row',
+        backgroundColor: 'rgba(0, 0, 0, 0.25)',
+        borderRadius: 20,
+        padding: 4,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    graphToggleButton: {
+        paddingVertical: 4,
+        paddingHorizontal: 12,
+        borderRadius: 16,
+    },
+    graphToggleButtonActive: {
+        backgroundColor: 'rgba(143, 117, 255, 0.35)',
+    },
+    graphToggleText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: 'rgba(226, 233, 255, 0.6)',
+    },
+    graphToggleTextActive: {
+        color: '#FFFFFF',
+        fontWeight: '800',
     },
     moodVisualization: {
         gap: 12,
@@ -828,9 +1124,9 @@ const styles = StyleSheet.create({
     },
     stressBar: {
         flex: 1,
-        height: 6,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        borderRadius: 3,
+        height: 8, // slightly thicker
+        backgroundColor: 'rgba(255, 255, 255, 0.15)', // brighter track
+        borderRadius: 4,
         overflow: 'hidden',
     },
     stressBarFill: {
@@ -840,9 +1136,9 @@ const styles = StyleSheet.create({
     },
     energyBar: {
         flex: 1,
-        height: 6,
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        borderRadius: 3,
+        height: 8,
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        borderRadius: 4,
         overflow: 'hidden',
     },
     energyBarFill: {
@@ -876,6 +1172,37 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 6,
         borderTopRightRadius: 6,
     },
+    lineChartContainer: {
+        height: 100,
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        justifyContent: 'space-between',
+        position: 'relative',
+        width: '100%',
+        paddingHorizontal: 4,
+        marginTop: 10,
+    },
+    lineChartDot: {
+        position: 'absolute',
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        marginLeft: -5, // center offset
+        marginTop: -5,  // center offset
+        borderWidth: 2,
+        borderColor: '#182042', // Background color for cutout effect
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.8,
+        shadowRadius: 4,
+        elevation: 4,
+        zIndex: 10, // Dots on top of lines
+    },
+    connectingLine: {
+        position: 'absolute',
+        height: 2,
+        backgroundColor: 'rgba(143, 117, 255, 0.45)', // Premium line color connecting dots
+        zIndex: 5,
+    },
     trendLegend: {
         width: '100%',
         paddingTop: 8,
@@ -907,12 +1234,12 @@ const styles = StyleSheet.create({
         paddingVertical: 6,
         borderRadius: 14,
         borderWidth: 1,
-        borderColor: 'rgba(212, 202, 255, 0.35)',
-        backgroundColor: 'rgba(255, 255, 255, 0.06)',
+        borderColor: 'rgba(212, 202, 255, 0.2)',
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
     },
     moodCoverageChipActive: {
-        borderColor: 'rgba(195, 233, 255, 0.9)',
-        backgroundColor: 'rgba(101, 156, 255, 0.24)',
+        borderColor: 'rgba(143, 117, 255, 0.8)',
+        backgroundColor: 'rgba(92, 64, 232, 0.35)', // Deep active purple
     },
     moodCoverageText: {
         fontSize: 11,
@@ -944,10 +1271,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 10,
-        paddingVertical: 8,
-        paddingHorizontal: 10,
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: 10,
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.05)',
+        borderRadius: 12,
     },
     activityIcon: {
         fontSize: 12,

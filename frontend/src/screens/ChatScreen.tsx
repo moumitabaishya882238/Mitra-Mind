@@ -90,6 +90,7 @@ export default function ChatScreen() {
     const [orbListeningRingAnim] = useState(new Animated.Value(0));
     const [orbWaveAnim] = useState(new Animated.Value(0));
     const [orbPinkWaveAnim] = useState(new Animated.Value(0));
+    const [starTwinkleAnim] = useState(new Animated.Value(0.3)); // Stars baseline opacity
 
     // Animate mic button when listening
     useEffect(() => {
@@ -219,6 +220,28 @@ export default function ChatScreen() {
             loop.stop();
         };
     }, [isListening, isSpeaking, orbPinkWaveAnim]);
+
+    // Star breathing/twinkling background animation
+    useEffect(() => {
+        const loop = Animated.loop(
+            Animated.sequence([
+                Animated.timing(starTwinkleAnim, {
+                    toValue: 0.8,
+                    duration: 3500,
+                    easing: Easing.inOut(Easing.sin),
+                    useNativeDriver: true,
+                }),
+                Animated.timing(starTwinkleAnim, {
+                    toValue: 0.3,
+                    duration: 4000,
+                    easing: Easing.inOut(Easing.sin),
+                    useNativeDriver: true,
+                }),
+            ])
+        );
+        loop.start();
+        return () => loop.stop();
+    }, [starTwinkleAnim]);
 
     const orbIdleScale = orbIdleGlowAnim.interpolate({
         inputRange: [0, 1],
@@ -351,7 +374,12 @@ export default function ChatScreen() {
                 text: aiReply,
                 sender: 'ai' as const,
             };
-            setMessages((prev) => [...prev, aiMsg]);
+
+            if (response.data?.clearHistory) {
+                setMessages([aiMsg]); // Reset to just the confirmation message
+            } else {
+                setMessages((prev) => [...prev, aiMsg]);
+            }
 
             // Play TTS if enabled
             if (enableTts) {
@@ -455,12 +483,13 @@ export default function ChatScreen() {
     }, [voiceInput]);
 
     return (
-        <View style={[styles.container, { backgroundColor: theme.colors.screenBase }]}>
+        <View style={[styles.container, { backgroundColor: '#020617' }]}>
             <StatusBar translucent backgroundColor="transparent" barStyle={theme.statusBarStyle} />
 
             <View style={styles.backgroundLayer}>
                 <LinearGradient
-                    colors={theme.gradients.main}
+                    // Richer, deeper space colors
+                    colors={['#060B26', '#09103D', '#120D31', '#050314']}
                     start={{ x: 0.5, y: 0 }}
                     end={{ x: 0.5, y: 1 }}
                     style={styles.mainGradient}
@@ -483,38 +512,38 @@ export default function ChatScreen() {
                     end={{ x: 0.95, y: 0.98 }}
                     style={styles.nebulaBottom}
                 />
-                <View style={[styles.star, styles.star1]} />
-                <View style={[styles.star, styles.star2]} />
-                <View style={[styles.star, styles.star3]} />
-                <View style={[styles.star, styles.star4]} />
-                <View style={[styles.star, styles.star5]} />
-                <View style={[styles.star, styles.star6]} />
-                <View style={[styles.star, styles.star7]} />
-                <View style={[styles.star, styles.star8]} />
-                <View style={[styles.star, styles.star9]} />
-                <View style={[styles.star, styles.star10]} />
-                <View style={[styles.star, styles.star11]} />
-                <View style={[styles.star, styles.star12]} />
-                <View style={[styles.star, styles.star13]} />
-                <View style={[styles.star, styles.star14]} />
-                <View style={[styles.star, styles.star15]} />
-                <View style={[styles.star, styles.star16]} />
-                <View style={[styles.star, styles.star17]} />
-                <View style={[styles.star, styles.star18]} />
-                <View style={[styles.star, styles.star19]} />
-                <View style={[styles.star, styles.star20]} />
-                <View style={[styles.star, styles.star21]} />
-                <View style={[styles.star, styles.star22]} />
-                <View style={[styles.star, styles.star23]} />
-                <View style={[styles.star, styles.star24]} />
-                <View style={[styles.star, styles.star25]} />
-                <View style={[styles.star, styles.star26]} />
-                <View style={[styles.star, styles.star27]} />
-                <View style={[styles.star, styles.star28]} />
-                <View style={[styles.star, styles.star29]} />
-                <View style={[styles.star, styles.star30]} />
-                <View style={[styles.star, styles.star31]} />
-                <View style={[styles.star, styles.star32]} />
+                <Animated.View style={[styles.star, styles.star1, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star2, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star3, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star4, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star5, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star6, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star7, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star8, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star9, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star10, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star11, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star12, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star13, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star14, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star15, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star16, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star17, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star18, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star19, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star20, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star21, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star22, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star23, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star24, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star25, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star26, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star27, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star28, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star29, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star30, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star31, { opacity: starTwinkleAnim }]} />
+                <Animated.View style={[styles.star, styles.star32, { opacity: starTwinkleAnim }]} />
             </View>
 
             <SafeAreaView style={styles.safeArea}>
@@ -672,76 +701,89 @@ export default function ChatScreen() {
                                             item.sender === 'user' ? styles.userBubble : styles.aiBubble,
                                         ]}
                                     >
+                                        {item.sender === 'ai' && (
+                                            <LinearGradient
+                                                colors={['rgba(255,255,255,0.12)', 'rgba(255,255,255,0.01)']}
+                                                start={{ x: 0, y: 0 }}
+                                                end={{ x: 1, y: 1 }}
+                                                style={styles.bubbleGlassEdge}
+                                                pointerEvents="none"
+                                            />
+                                        )}
                                         <Text style={styles.messageText}>{item.text}</Text>
                                     </View>
                                 );
                             }}
                         />
-                    </View>
+                    </View >
                 ) : (
                     <Text style={styles.helperText}>Type your thoughts below and press send.</Text>
                 )}
 
-                {latestAnalysis ? (
-                    <View style={styles.analysisCard}>
-                        <View style={[styles.analysisDot, { backgroundColor: getMoodColor(latestAnalysis.moodCategory) }]} />
-                        <Text style={styles.analysisText}>Mood: {latestAnalysis.moodCategory}</Text>
-                        <Text style={styles.analysisText}>Stress: {latestAnalysis.stressScore}/10</Text>
-                        <Text style={styles.analysisText}>Distress: {latestAnalysis.distress}</Text>
-                    </View>
-                ) : null}
+                {
+                    latestAnalysis ? (
+                        <View style={styles.analysisCard}>
+                            <View style={[styles.analysisDot, { backgroundColor: getMoodColor(latestAnalysis.moodCategory) }]} />
+                            <Text style={styles.analysisText}>Mood: {latestAnalysis.moodCategory}</Text>
+                            <Text style={styles.analysisText}>Stress: {latestAnalysis.stressScore}/10</Text>
+                            <Text style={styles.analysisText}>Distress: {latestAnalysis.distress}</Text>
+                        </View>
+                    ) : null
+                }
 
-                {crisisData.detected ? (
-                    <View style={[styles.crisisCard]}>
-                        <View style={styles.crisisHeader}>
-                            <Text style={styles.crisisAlertIcon}>🚨</Text>
-                            <View style={styles.crisisHeaderText}>
-                                <Text style={styles.crisisTitle}>Immediate Support Available</Text>
-                                <Text style={styles.crisisSubtitle}>We detected crisis language. Help is here.</Text>
+                {
+                    crisisData.detected ? (
+                        <View style={[styles.crisisCard]}>
+                            <View style={styles.crisisHeader}>
+                                <Text style={styles.crisisAlertIcon}>🚨</Text>
+                                <View style={styles.crisisHeaderText}>
+                                    <Text style={styles.crisisTitle}>Immediate Support Available</Text>
+                                    <Text style={styles.crisisSubtitle}>We detected crisis language. Help is here.</Text>
+                                </View>
                             </View>
-                        </View>
 
-                        <Text style={styles.crisisResourcesLabel}>Crisis Resources:</Text>
+                            <Text style={styles.crisisResourcesLabel}>Crisis Resources:</Text>
 
-                        <View style={styles.helplinesList}>
-                            {crisisData.helplines.length > 0 ? (
-                                crisisData.helplines.map((helpline, idx) => {
-                                    // Extract first number before "/" or "or" separator
-                                    const primaryPhone = helpline.phone.split(/\/|or/i)[0].trim();
-                                    const phoneNumber = primaryPhone.replace(/[^0-9+]/g, '');
-                                    return (
-                                        <View key={idx} style={styles.helplineItem}>
-                                            <View style={styles.helplineInfo}>
-                                                <Text style={styles.helplineName}>{helpline.name}</Text>
-                                                <Text style={styles.helplinePhone}>{helpline.phone}</Text>
+                            <View style={styles.helplinesList}>
+                                {crisisData.helplines.length > 0 ? (
+                                    crisisData.helplines.map((helpline, idx) => {
+                                        // Extract first number before "/" or "or" separator
+                                        const primaryPhone = helpline.phone.split(/\/|or/i)[0].trim();
+                                        const phoneNumber = primaryPhone.replace(/[^0-9+]/g, '');
+                                        return (
+                                            <View key={idx} style={styles.helplineItem}>
+                                                <View style={styles.helplineInfo}>
+                                                    <Text style={styles.helplineName}>{helpline.name}</Text>
+                                                    <Text style={styles.helplinePhone}>{helpline.phone}</Text>
+                                                </View>
+                                                <View style={styles.helplineActions}>
+                                                    <Pressable
+                                                        style={styles.callButton}
+                                                        onPress={() => Linking.openURL(`tel:${phoneNumber}`).catch(() => { })}
+                                                    >
+                                                        <Text style={styles.callButtonText}>📱 Call</Text>
+                                                    </Pressable>
+                                                    <Pressable
+                                                        style={styles.websiteButton}
+                                                        onPress={() => Linking.openURL(helpline.site).catch(() => { })}
+                                                    >
+                                                        <Text style={styles.websiteButtonText}>→</Text>
+                                                    </Pressable>
+                                                </View>
                                             </View>
-                                            <View style={styles.helplineActions}>
-                                                <Pressable
-                                                    style={styles.callButton}
-                                                    onPress={() => Linking.openURL(`tel:${phoneNumber}`).catch(() => { })}
-                                                >
-                                                    <Text style={styles.callButtonText}>📱 Call</Text>
-                                                </Pressable>
-                                                <Pressable
-                                                    style={styles.websiteButton}
-                                                    onPress={() => Linking.openURL(helpline.site).catch(() => { })}
-                                                >
-                                                    <Text style={styles.websiteButtonText}>→</Text>
-                                                </Pressable>
-                                            </View>
-                                        </View>
-                                    );
-                                })
-                            ) : (
-                                <Text style={styles.noHelplines}>Loading resources...</Text>
-                            )}
-                        </View>
+                                        );
+                                    })
+                                ) : (
+                                    <Text style={styles.noHelplines}>Loading resources...</Text>
+                                )}
+                            </View>
 
-                        <Text style={styles.crisisFooter}>
-                            You are not alone. Reach out to one of these resources immediately.
-                        </Text>
-                    </View>
-                ) : null}
+                            <Text style={styles.crisisFooter}>
+                                You are not alone. Reach out to one of these resources immediately.
+                            </Text>
+                        </View>
+                    ) : null
+                }
 
                 <View style={styles.bottomDock}>
                     <View style={styles.inputContainer}>
@@ -906,10 +948,14 @@ const styles = StyleSheet.create({
     },
     star: {
         position: 'absolute',
-        width: 1.8,
-        height: 1.8,
+        width: 2.2,
+        height: 2.2,
         borderRadius: 2,
-        backgroundColor: 'rgba(236, 243, 255, 0.48)',
+        backgroundColor: '#FFFFFF', // Pure white for better contrast
+        shadowColor: '#FFFFFF',
+        shadowOpacity: 0.8,
+        shadowRadius: 4,
+        elevation: 2,
     },
     star1: { top: '12%', left: '18%' },
     star2: { top: '16%', left: '72%' },
@@ -1130,25 +1176,44 @@ const styles = StyleSheet.create({
         gap: 10,
     },
     messageBubble: {
-        paddingHorizontal: 14,
-        paddingVertical: 10,
-        borderRadius: 16,
-        maxWidth: '84%',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderRadius: 22,
+        maxWidth: '86%',
+        position: 'relative',
+        overflow: 'hidden',
+    },
+    bubbleGlassEdge: {
+        ...StyleSheet.absoluteFillObject,
+        borderRadius: 22,
     },
     userBubble: {
         alignSelf: 'flex-end',
-        backgroundColor: 'rgba(101, 154, 255, 0.95)',
+        backgroundColor: '#5C40E8', // Rich premium purple
+        borderBottomRightRadius: 6,
+        shadowColor: '#5C40E8',
+        shadowOpacity: 0.35,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 6,
     },
     aiBubble: {
         alignSelf: 'flex-start',
-        backgroundColor: 'rgba(255,255,255,0.14)',
+        backgroundColor: 'rgba(24, 32, 66, 0.75)',
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.2)',
+        borderColor: 'rgba(142, 161, 255, 0.15)',
+        borderBottomLeftRadius: 6,
+        shadowColor: '#000000',
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 4,
     },
     messageText: {
-        fontSize: 15,
-        lineHeight: 21,
-        color: '#FFFFFF',
+        fontSize: 15.5,
+        lineHeight: 23,
+        color: '#F8FAFC',
+        letterSpacing: 0.1,
     },
     helperText: {
         marginTop: 18,
@@ -1218,16 +1283,17 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 8,
         borderWidth: 1,
-        borderColor: 'rgba(194, 208, 255, 0.18)',
-        backgroundColor: 'rgba(11, 14, 36, 0.56)',
-        borderRadius: 24,
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        shadowColor: '#6A86FF',
-        shadowOpacity: 0.16,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 6 },
-        elevation: 8,
+        borderColor: 'rgba(180, 200, 255, 0.25)',
+        backgroundColor: 'rgba(15, 20, 48, 0.85)',
+        borderRadius: 30, // Pill shape
+        paddingHorizontal: 10,
+        paddingVertical: 8,
+        shadowColor: '#4F46E5',
+        shadowOpacity: 0.25,
+        shadowRadius: 15,
+        shadowOffset: { width: 0, height: 8 },
+        elevation: 10,
+        marginBottom: 8, // Lift off the bottom edge slightly
     },
     inputGlassEdge: {
         position: 'absolute',
@@ -1235,7 +1301,9 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         bottom: 0,
-        borderRadius: 24,
+        borderRadius: 30,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
     },
     input: {
         flex: 1,
@@ -1247,19 +1315,19 @@ const styles = StyleSheet.create({
         fontSize: 13,
     },
     sendButton: {
-        width: 42,
-        height: 42,
-        borderRadius: 21,
+        width: 44,
+        height: 44,
+        borderRadius: 22,
         overflow: 'hidden',
         alignItems: 'center',
         justifyContent: 'center',
         borderWidth: 1,
-        borderColor: 'rgba(181, 153, 255, 0.82)',
-        shadowColor: '#946BFF',
-        shadowOpacity: 0.55,
-        shadowRadius: 10,
+        borderColor: 'rgba(220, 200, 255, 0.9)',
+        shadowColor: '#A855F7',
+        shadowOpacity: 0.6,
+        shadowRadius: 12,
         shadowOffset: { width: 0, height: 4 },
-        elevation: 6,
+        elevation: 8,
     },
     sendButtonGradient: {
         width: '100%',
@@ -1472,15 +1540,15 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     ttsButton: {
-        width: 46,
-        height: 46,
-        borderRadius: 12,
-        backgroundColor: 'rgba(52, 211, 153, 0.15)',
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(52, 211, 153, 0.1)',
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: 'rgba(52, 211, 153, 0.3)',
-        marginHorizontal: 8,
+        borderColor: 'rgba(52, 211, 153, 0.2)',
+        marginHorizontal: 4,
     },
     ttsButtonActive: {
         borderColor: 'rgba(52, 211, 153, 0.7)',
