@@ -67,7 +67,7 @@ export default function RootLayout({
             <Link href="/feedback" style={navStyles.link}>Feedback</Link>
             <Link href="/contact" style={navStyles.link}>Contact</Link>
           </div>
-          <Link href="/contact" className="glass-btn site-nav__cta" style={navStyles.btn}>Get Early Access</Link>
+          <a href="/mitra-mind.apk" download className="glass-btn" style={navStyles.btn}>Download APK</a>
 
           <details className="site-nav__mobile-menu">
             <summary className="site-nav__toggle" aria-label="Open navigation menu">

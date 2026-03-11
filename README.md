@@ -1,5 +1,7 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/sahidahmed/mitra-mind/main/landing-page/public/space-bg.jpg" alt="Mitra-Mind Logo" width="100%" style="border-radius: 12px; margin-bottom: 20px;">
+  <img src="landing-page/public/brand/mitramind-logo.png" alt="Mitra-Mind App Logo" width="150" style="margin-bottom: 10px;">
+  <br/>
+  <img src="https://raw.githubusercontent.com/sahidahmed/mitra-mind/main/landing-page/public/space-bg.jpg" alt="Mitra-Mind Cosmic Theme" width="100%" style="border-radius: 12px; margin-bottom: 20px;">
   
   # 🌌 Mitra-Mind
   **Your Empathetic, Context-Aware Student Companion**
@@ -12,7 +14,7 @@
 
 <br/>
 
-## ✨ Overview
+## Overview
 
 **Mitra-Mind** is a comprehensive, AI-driven mental health application designed explicitly for students navigating the stress of campus life. Built to bridge the gap between isolating academic pressure and professional care, Mitra provides a judgment-free, 24/7 ecosystem comprising an empathetic AI chatbot, an anonymous peer support community, and an interactive crisis toolkit.
 
@@ -20,7 +22,7 @@ With an aesthetic inspired by the deep cosmos ("Billion-Dollar UI"), Mitra-Mind 
 
 ---
 
-## 🧠 Our Custom AI Engine
+## Our Custom AI Engine
 
 Instead of relying on generic wrappers, the Mitra team engineered a bespoke, highly contextual intelligence layer designed specifically for therapeutic and empathetic response generation. 
 
@@ -32,7 +34,7 @@ Our proprietary architecture features:
 
 ---
 
-## 🚀 Key Features
+## Key Features
 
 *   💬 **Conversational AI Companion**: Deeply empathetic, natural-language psychological first aid.
 *   🌍 **Multilingual Support**: Fully localized in English, Hindi, and Assamese.
@@ -43,7 +45,7 @@ Our proprietary architecture features:
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 **Frontend (Mobile App)**
 - React Native (Bare Workflow)

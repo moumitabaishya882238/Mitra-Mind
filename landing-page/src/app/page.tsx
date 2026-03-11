@@ -17,7 +17,7 @@ export default function Home() {
         </p>
 
         <div className="button-row" style={styles.ctaGroup}>
-          <a href="/downloads" className="glass-btn" style={styles.primaryBtn}>Download App</a>
+          <a href="/mitra-mind.apk" download className="glass-btn" style={styles.primaryBtn}>Download App (APK)</a>
           <a href="/about" style={styles.secondaryBtn}>Learn More &rarr;</a>
         </div>
       </div>
@@ -102,7 +102,7 @@ export default function Home() {
         <h2 style={styles.finalCtaTitle}>Build a calmer student culture with always-on support</h2>
         <p style={styles.finalCtaText}>Join early access to shape the next generation of student mental wellness care.</p>
         <div className="button-row" style={styles.finalCtaButtons}>
-          <a href="/downloads" className="glass-btn" style={styles.primaryBtn}>Join Beta</a>
+          <a href="/mitra-mind.apk" download className="glass-btn" style={styles.primaryBtn}>Download APK</a>
           <a href="/contact" style={styles.secondaryBtn}>Talk to Team &rarr;</a>
         </div>
       </section>

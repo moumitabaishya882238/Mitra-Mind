@@ -51,7 +51,7 @@ export default function Downloads() {
                                 </p>
                                 <div style={styles.metaRow}>
                                     <span style={styles.metaPill}>Android 10+</span>
-                                    <a href="/contact" className="glass-btn" style={styles.inlineBtn}>Request APK Beta</a>
+                                    <a href="/mitra-mind.apk" download className="glass-btn" style={styles.inlineBtn}>Download APK beta version</a>
                                 </div>
                             </div>
                         </article>
