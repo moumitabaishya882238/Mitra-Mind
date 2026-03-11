@@ -88,11 +88,11 @@ export function useVoiceOutput() {
   const [state, setState] = useState<VoiceOutputState>('idle');
   const [error, setError] = useState<string | null>(null);
 
-  const speak = useCallback(async (text: string) => {
+  const speak = useCallback(async (text: string, language: string = 'en') => {
     try {
       setError(null);
       setState('speaking');
-      await voiceService.speak(text);
+      await voiceService.speak(text, language);
       setState('idle');
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to speak text';

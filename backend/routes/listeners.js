@@ -5,6 +5,9 @@ const Listener = require('../models/Listener');
 const ListenerChat = require('../models/ListenerChat');
 const ListenerApplication = require('../models/ListenerApplication');
 const { requireAdmin } = require('../middleware/adminAuth');
+const BehaviorPattern = require('../models/BehaviorPattern');
+const DailyMoodLog = require('../models/DailyMoodLog');
+const { generateListenerInsight } = require('../services/geminiService');
 
 const router = express.Router();
 
@@ -73,7 +76,7 @@ function serializeListener(listener) {
         id: String(listener._id),
         name: listener.name,
         role: listener.role,
-            profileImage: listener.profileImage || '',
+        profileImage: listener.profileImage || '',
         verificationStatus: listener.verificationStatus,
         trainingCompleted: listener.trainingCompleted,
         availabilityStatus: listener.availabilityStatus,
@@ -348,7 +351,7 @@ router.patch('/listener-applications/:id/status', requireAdmin, async (req, res)
                         city: application.city,
                         state: application.state,
                         country: application.country,
-                                            profileImage: application.profileImage || '',
+                        profileImage: application.profileImage || '',
                     },
                 },
                 { upsert: true, new: true, setDefaultsOnInsert: true }
@@ -367,6 +370,37 @@ router.patch('/listener-applications/:id/status', requireAdmin, async (req, res)
     } catch (error) {
         console.error('Review listener application error:', error);
         return res.status(500).json({ error: 'Failed to update application status' });
+    }
+});
+
+router.get('/insight/:userId', async (req, res) => {
+    const { userId } = req.params;
+
+    try {
+        // Fetch student context for AI analysis
+        const [pattern, logs] = await Promise.all([
+            BehaviorPattern.findOne({ sessionId: userId }).lean(),
+            DailyMoodLog.find({ sessionId: userId }).sort({ date: -1 }).limit(7).lean()
+        ]);
+
+        if (!pattern && (!logs || logs.length === 0)) {
+            return res.json({
+                insight: "• No significant stress patterns detected yet.\n• The student has not logged recent concerns.\n• Mitra is standing by to help once more data is available."
+            });
+        }
+
+        const studentContext = {
+            stressTimeCounts: pattern ? Object.fromEntries(pattern.stressTimeCounts) : {},
+            lastCommunityInsight: pattern?.lastCommunityInsight,
+            recentMoodLogs: logs.map(l => ({ mood: l.mood, score: l.stressScore, date: l.date }))
+        };
+
+        const insightText = await generateListenerInsight(studentContext);
+
+        return res.json({ insight: insightText });
+    } catch (error) {
+        console.error('Fetch listener insight error:', error);
+        return res.status(500).json({ error: 'Failed to generate student insight' });
     }
 });
 

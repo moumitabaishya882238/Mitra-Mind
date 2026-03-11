@@ -3,17 +3,19 @@ import { View, Text, Button, StyleSheet, ScrollView } from 'react-native';
 import Video from 'react-native-video';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAppTheme } from '../context/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 const STORAGE_SESSION_KEY = 'mh-session-id';
 
 export default function WelcomeScreen({ navigation }: any) {
+    const { t } = useTranslation();
     const { theme } = useAppTheme();
 
     const handleStartChat = async () => {
         try {
             // Check if user already has a unique ID
             let userId = await AsyncStorage.getItem(STORAGE_SESSION_KEY);
-            
+
             // If not, create a new unique ID for this device
             if (!userId) {
                 userId = `session-${Date.now()}-${Math.random().toString(36).substring(7)}`;
@@ -22,7 +24,7 @@ export default function WelcomeScreen({ navigation }: any) {
             } else {
                 console.log('✅ Existing user ID found:', userId);
             }
-            
+
             // Navigate to the chat screen
             navigation.replace('MainTabs', { screen: 'MitraChat' });
         } catch (error) {
@@ -43,7 +45,7 @@ export default function WelcomeScreen({ navigation }: any) {
                 muted={true}
                 paused={false}
             />
-            
+
             {/* Overlay for better text readability */}
             <View
                 style={[
@@ -51,29 +53,29 @@ export default function WelcomeScreen({ navigation }: any) {
                     { backgroundColor: theme.id === 'mitra-light' ? 'rgba(14, 32, 70, 0.42)' : 'rgba(0,0,0,0.55)' },
                 ]}
             />
-            
+
             <ScrollView contentContainerStyle={styles.container}>
                 <View style={styles.content}>
                     <Text style={styles.greeting}>
-                        <Text style={[styles.gradientStart, { color: theme.colors.textPrimary }]}>Welcome</Text>{' '}
-                        <Text style={[styles.gradientMid, { color: theme.colors.textSecondary }]}>to</Text>{' '}
-                        <Text style={[styles.gradientEnd, { color: theme.colors.accent }]}>Mitra</Text>
+                        <Text style={[styles.gradientStart, { color: theme.colors.textPrimary }]}>{t('welcome.welcome')}</Text>{' '}
+                        <Text style={[styles.gradientMid, { color: theme.colors.textSecondary }]}>{t('welcome.to')}</Text>{' '}
+                        <Text style={[styles.gradientEnd, { color: theme.colors.accent }]}>{t('welcome.mitra')}</Text>
                     </Text>
-                    
+
                     <Text style={styles.message}>
-                        A private space to check in, reflect, and get calm, practical support.
+                        {t('welcome.message')}
                     </Text>
 
                     <Text style={styles.subMessage}>
-                        Mitra is your AI companion for emotional well-being. Share how you feel and receive supportive guidance, anytime.
+                        {t('welcome.sub_message')}
                     </Text>
 
                     <Text style={styles.finalMessage}>
-                        Begin when you are ready.
+                        {t('welcome.final_message')}
                     </Text>
 
-                    <Button 
-                        title="Start Chatting with Mitra" 
+                    <Button
+                        title={t('welcome.button_title')}
                         onPress={handleStartChat}
                         color={theme.colors.accent}
                     />

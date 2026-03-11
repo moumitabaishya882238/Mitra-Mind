@@ -4,6 +4,7 @@ const { generateCompanionResponse, analyzeEmotionAndExtractData } = require('../
 const DailyMoodLog = require('../models/DailyMoodLog');
 const ChatMessage = require('../models/ChatMessage');
 const BehaviorPattern = require('../models/BehaviorPattern');
+const { getTimeBucket } = require('../utils/timeUtils');
 
 const HELPLINES = [
     { name: 'India - Tele MANAS', phone: '14416 / 1-800-891-4416', site: 'https://telemanas.mohfw.gov.in' },
@@ -43,7 +44,7 @@ const TOPIC_KEYWORDS = {
 function tokenize(text = '') {
     return text
         .toLowerCase()
-    .replace(/[^\p{L}\s]/gu, ' ')
+        .replace(/[^\p{L}\s]/gu, ' ')
         .split(/\s+/)
         .filter(Boolean);
 }
@@ -121,13 +122,6 @@ function moodEmoji(mood) {
     return '😐';
 }
 
-function getTimeBucket(date = new Date()) {
-    const hour = date.getHours();
-    if (hour >= 5 && hour < 12) return 'morning';
-    if (hour >= 12 && hour < 17) return 'afternoon';
-    if (hour >= 17 && hour < 21) return 'evening';
-    return 'night';
-}
 
 function incrementMapValue(mapObj, key, amount = 1) {
     const current = Number(mapObj.get(key) || 0);
@@ -152,7 +146,13 @@ function extractFrequentTopics(message = '') {
 }
 
 function topEntriesFromMap(mapObj, limit = 3) {
-    return Array.from(mapObj.entries())
+    if (!mapObj) return [];
+
+    const entries = typeof mapObj.entries === 'function'
+        ? Array.from(mapObj.entries())
+        : Object.entries(mapObj);
+
+    return entries
         .sort((a, b) => b[1] - a[1])
         .slice(0, limit)
         .map(([key, count]) => ({ key, count }));
@@ -330,6 +330,17 @@ router.post('/chat', async (req, res) => {
             message,
         });
 
+        // Filter for recent community insights (last 48 hours)
+        let recentCommunityInsight = null;
+        if (updatedPattern.lastCommunityInsight && updatedPattern.lastCommunityInsight.date) {
+            const insightDate = new Date(updatedPattern.lastCommunityInsight.date);
+            const now = new Date();
+            const diffHours = (now.getTime() - insightDate.getTime()) / (1000 * 60 * 60);
+            if (diffHours <= 48) {
+                recentCommunityInsight = updatedPattern.lastCommunityInsight;
+            }
+        }
+
         const behaviorSummary = buildBehaviorSummary(updatedPattern);
 
         const reply = await generateCompanionResponse(
@@ -337,7 +348,8 @@ router.post('/chat', async (req, res) => {
             emotionContext,
             language,
             conversationHistory,
-            behaviorSummary
+            behaviorSummary,
+            recentCommunityInsight
         );
 
         await ChatMessage.insertMany([

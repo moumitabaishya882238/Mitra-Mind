@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useAppTheme } from '../context/ThemeContext';
 import PostCard from '../components/community/PostCard';
 import communityService, { CommunityFilter, CommunityPost } from '../services/communityService';
@@ -13,6 +14,7 @@ type Props = {
 };
 
 export default function PostsScreen({ navigation }: Props) {
+    const { t } = useTranslation();
     const { theme } = useAppTheme();
     const [sessionId, setSessionId] = useState('anonymous-device');
     const [filter, setFilter] = useState<CommunityFilter>('all');
@@ -21,11 +23,11 @@ export default function PostsScreen({ navigation }: Props) {
 
     const filters = useMemo(
         () => [
-            { id: 'all' as CommunityFilter, label: 'All Posts' },
-            { id: 'mine' as CommunityFilter, label: 'My Posts' },
-            { id: 'saved' as CommunityFilter, label: 'Saved Posts' },
+            { id: 'all' as CommunityFilter, label: t('community.filter_all') },
+            { id: 'mine' as CommunityFilter, label: t('community.filter_mine') },
+            { id: 'saved' as CommunityFilter, label: t('community.filter_saved') },
         ],
-        []
+        [t]
     );
 
     const ensureSessionId = useCallback(async () => {
@@ -91,10 +93,13 @@ export default function PostsScreen({ navigation }: Props) {
     return (
         <View style={styles.container}>
             <Pressable
-                style={[styles.createButton, { backgroundColor: theme.colors.accent }]}
+                style={({ pressed }) => [
+                    styles.createButton,
+                    pressed && styles.createButtonPressed,
+                ]}
                 onPress={() => navigation.navigate('CreatePost')}
             >
-                <Text style={styles.createButtonText}>+ Share how you're feeling</Text>
+                <Text style={styles.createButtonText}>{t('community.share_prompt')}</Text>
             </Pressable>
 
             <View style={styles.filterRow}>
@@ -105,17 +110,14 @@ export default function PostsScreen({ navigation }: Props) {
                             key={item.id}
                             style={[
                                 styles.filterButton,
-                                {
-                                    borderColor: active ? theme.colors.accent : theme.colors.borderSoft,
-                                    backgroundColor: active ? theme.colors.cardBg : 'transparent',
-                                },
+                                active ? styles.filterButtonActive : null,
                             ]}
                             onPress={() => setFilter(item.id)}
                         >
                             <Text
                                 style={[
                                     styles.filterText,
-                                    { color: active ? theme.colors.accent : theme.colors.textSecondary },
+                                    active ? styles.filterTextActive : null,
                                 ]}
                             >
                                 {item.label}
@@ -126,11 +128,11 @@ export default function PostsScreen({ navigation }: Props) {
             </View>
 
             {loading ? (
-                <Text style={[styles.stateText, { color: theme.colors.textSecondary }]}>Loading posts...</Text>
+                <Text style={[styles.stateText, { color: theme.colors.textSecondary }]}>{t('community.loading')}</Text>
             ) : null}
 
             {!loading && !posts.length ? (
-                <Text style={[styles.stateText, { color: theme.colors.textSecondary }]}>No posts yet. Be the first to share.</Text>
+                <Text style={[styles.stateText, { color: theme.colors.textSecondary }]}>{t('community.no_posts')}</Text>
             ) : null}
 
             <FlatList
@@ -157,34 +159,61 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     createButton: {
-        borderRadius: 10,
-        paddingVertical: 11,
+        backgroundColor: 'rgba(92, 64, 232, 0.45)', // Premium purple core
+        borderWidth: 1,
+        borderColor: 'rgba(223, 214, 255, 0.35)', // Glowing edge
+        borderRadius: 14,
+        paddingVertical: 14,
         alignItems: 'center',
-        marginBottom: 10,
+        marginBottom: 16,
+        shadowColor: '#8B5CF6',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.25,
+        shadowRadius: 10,
+        elevation: 6,
+    },
+    createButtonPressed: {
+        transform: [{ scale: 0.985 }],
+        opacity: 0.9,
     },
     createButtonText: {
         color: '#FFFFFF',
         fontWeight: '800',
-        fontSize: 14,
+        fontSize: 15,
+        letterSpacing: 0.5,
     },
     filterRow: {
         flexDirection: 'row',
-        gap: 8,
-        marginBottom: 10,
+        gap: 10,
+        marginBottom: 16,
     },
     filterButton: {
         borderWidth: 1,
-        borderRadius: 999,
-        paddingHorizontal: 10,
-        paddingVertical: 6,
+        borderColor: 'rgba(255, 255, 255, 0.15)',
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        borderRadius: 20,
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+    },
+    filterButtonActive: {
+        borderColor: 'rgba(143, 117, 255, 0.8)',
+        backgroundColor: 'rgba(92, 64, 232, 0.35)', // Deep active purple
     },
     filterText: {
-        fontSize: 12,
+        fontSize: 13,
+        fontWeight: '600',
+        color: 'rgba(226, 233, 255, 0.65)',
+    },
+    filterTextActive: {
+        color: '#FFFFFF',
         fontWeight: '700',
     },
     stateText: {
-        fontSize: 13,
+        fontSize: 14,
         marginBottom: 8,
+        color: 'rgba(238, 243, 255, 0.7)',
+        textAlign: 'center',
+        marginTop: 20,
     },
     listContent: {
         paddingBottom: 22,

@@ -5,6 +5,9 @@ const Post = require('../models/Post');
 const Reply = require('../models/Reply');
 const DirectMessage = require('../models/DirectMessage');
 const SavedPost = require('../models/SavedPost');
+const BehaviorPattern = require('../models/BehaviorPattern');
+const DailyMoodLog = require('../models/DailyMoodLog');
+const { analyzeEmotionAndExtractData } = require('../services/geminiService');
 
 const router = express.Router();
 
@@ -189,6 +192,43 @@ router.post('/posts', async (req, res) => {
             mood: String(mood || '').trim(),
             moderation,
         });
+
+        // Background AI Analysis for Context Memory & Dashboard Sync
+        // We don't await this to keep the post response fast
+        (async () => {
+            try {
+                const analysis = await analyzeEmotionAndExtractData(message);
+                if (analysis) {
+                    await Promise.all([
+                        // Update Chatbot Context Memory
+                        BehaviorPattern.findOneAndUpdate(
+                            { sessionId: userId },
+                            {
+                                $set: {
+                                    lastCommunityInsight: {
+                                        text: message,
+                                        mood: analysis.mood_category,
+                                        stressScore: analysis.stress_score,
+                                        date: new Date(),
+                                    }
+                                }
+                            },
+                            { upsert: true }
+                        ),
+                        // Update Dashboard Mood Trend
+                        DailyMoodLog.create({
+                            sessionId: userId,
+                            moodCategory: analysis.mood_category,
+                            stressScore: analysis.stress_score,
+                            crisisDetected: analysis.crisis_detected || false,
+                            conversationSummary: `Community Post: ${message.slice(0, 200)}`,
+                        })
+                    ]);
+                }
+            } catch (err) {
+                console.error("Community AI Processing error:", err);
+            }
+        })();
 
         return res.status(201).json({
             post: serializePost(created, userId, {

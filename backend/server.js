@@ -6,6 +6,7 @@ const dotenv = require('dotenv');
 const session = require('express-session');
 const passport = require('passport');
 const { Server } = require('socket.io');
+const { processNudges } = require('./services/nudgeService');
 
 dotenv.config();
 
@@ -62,10 +63,22 @@ app.use('/community', require('./routes/community'));
 app.use('/upload', require('./routes/upload'));
 app.use('/', require('./routes/listeners'));
 app.use('/support', require('./routes/support'));
+app.use('/landing', require('./routes/landingForms'));
 
 // Root Endpoint
 app.get('/', (req, res) => {
     res.json({ message: 'Mitra-Mind Backend is running' });
+});
+
+// Optimized AI Chat Route (Phase 7 - ESM Bridge)
+app.post('/api/chat', async (req, res) => {
+    try {
+        const { chatController } = await import('./services/ai/ChatController.mjs');
+        return chatController.handleChat(req, res);
+    } catch (err) {
+        console.error("ESM Bridge Error:", err);
+        res.status(500).json({ error: "AI Service initialization failed" });
+    }
 });
 
 io.on('connection', (socket) => {
@@ -88,4 +101,14 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 5001; // Using 5001 to avoid conflict with Matri
 httpServer.listen(PORT, () => {
     console.log(`Mitra-Mind Server running on port ${PORT}`);
+
+    // Start Proactive AI Nudge Engine
+    // Check for nudges 1 minute after startup, then every 6 hours
+    setTimeout(() => {
+        processNudges(io);
+    }, 60000);
+
+    setInterval(() => {
+        processNudges(io);
+    }, 6 * 60 * 60 * 1000);
 });

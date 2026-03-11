@@ -1,0 +1,108 @@
+import { geminiClient } from "./GeminiClient.mjs";
+import { HistoryTrimmer } from "./HistoryTrimmer.mjs";
+import BehaviorPattern from "../../models/BehaviorPattern.js";
+import DailyMoodLog from "../../models/DailyMoodLog.js";
+import ChatMessage from "../../models/ChatMessage.js";
+import geminiService from "../geminiService.js";
+const { analyzeEmotionAndExtractData } = geminiService;
+
+/**
+ * Service to orchestrate the AI chat flow.
+ * Handles history trimming, key rotation, and context building.
+ */
+export class ChatService {
+    /**
+     * Main chat processing function.
+     */
+    async processChat(sessionId, message, conversationHistory = [], language = 'en') {
+        console.log(`[ChatService] Processing chat for session: ${sessionId}`);
+        // 1. Context Enhancement
+        // We keep your "yesterday you mentioned" feature by fetching BehaviorPattern
+        const pattern = await BehaviorPattern.findOne({ sessionId });
+
+        let behavioralInjections = "";
+        if (pattern && pattern.lastCommunityInsight) {
+            const insightDate = new Date(pattern.lastCommunityInsight.date);
+            const now = new Date();
+            const diffHours = (now.getTime() - insightDate.getTime()) / (1000 * 60 * 60);
+
+            if (diffHours <= 48) {
+                behavioralInjections += `Note: Yesterday the student shared in the community: "${pattern.lastCommunityInsight.text}". They felt a stress level of ${pattern.lastCommunityInsight.stressScore}/10. `;
+            }
+        }
+
+        // 2. History Trimming
+        // We limit history to last 6 messages to save many tokens/quota
+        const trimmedHistory = HistoryTrimmer.trim(conversationHistory, 6);
+
+        // 3. System Instruction
+        // This is where "Mitra" personality lives.
+        const systemInstruction = `
+      You are Mitra, an empathetic AI student companion. 
+      CRITICAL RULE: You MUST respond EXCLUSIVELY in this language: ${language}. 
+      Even if the user types in English or a mix of languages ("Hinglish"), your final output MUST be translated and written purely in ${language}.
+      
+      APP INTEGRATION RULES:
+      1. If the user mentions wanting to talk to a real person, feeling lonely, or needing someone to listen to them for a while, YOU MUST kindly suggest they visit the "Community" tab to talk with peers, or connect with our dedicated "Listeners" available in the ecosystem.
+      2. If the user mentions wanting to go somewhere, asking for places with specific vibes, or seeking a physical environment to match their mood, YOU MUST suggest they explore "MoodMaps" by tapping on the "MindSpace" section.
+      3. If the user explicitly asks you to forget your conversation history, delete the history, or forget whatever you talked about, you MUST include the exact exact token '[CLEAR_HISTORY]' anywhere in your response, and confirm to them you have cleared your memory.
+
+      Context: ${behavioralInjections}.
+      Provide supportive, actionable mental health coaching. 
+      Keep responses warm, human, and concise. Do not sound like a generic robot.
+    `;
+
+        // 4. Call Gemini via the Rotated Key Client
+        let reply = await geminiClient.generateResponse(message, trimmedHistory, systemInstruction);
+        let clearHistory = false;
+
+        // Check if AI included the clear history token
+        if (reply.includes('[CLEAR_HISTORY]')) {
+            clearHistory = true;
+            reply = reply.replace('[CLEAR_HISTORY]', '').trim();
+            // Delete history for this session from DB
+            try {
+                await ChatMessage.deleteMany({ sessionId });
+                console.log(`[ChatService] Cleared database history for session ${sessionId}`);
+            } catch (err) {
+                console.error("Failed to clear history from DB", err);
+            }
+        }
+
+        // 5. Background Tasks (Log to DB)
+        // We do this asynchronously or after responding to keep the API fast.
+
+        // Log the current message, unless we just cleared history, in which case we only log the bot's confirmation 
+        // actually we can log both to start a new history chapter.
+        this.logActivity(sessionId, message, reply, language).catch(err => console.error("Logging error:", err));
+
+        return { reply, clearHistory };
+    }
+
+    /**
+     * Logs conversation and analyzes emotion for the Dashboard.
+     */
+    async logActivity(sessionId, userMsg, botReply, language) {
+        try {
+            // We reuse your existing analysis tool to feed the Dashboard
+            const analysis = await analyzeEmotionAndExtractData(userMsg);
+
+            await DailyMoodLog.create({
+                sessionId,
+                moodCategory: analysis.mood_category || 'Neutral',
+                stressScore: Number(analysis.stress_score) || 5,
+                crisisDetected: Boolean(analysis.crisis_detected),
+                conversationSummary: userMsg.slice(0, 400),
+            });
+
+            await ChatMessage.insertMany([
+                { sessionId, role: 'user', text: userMsg, language },
+                { sessionId, role: 'bot', text: botReply, language }
+            ]);
+        } catch (err) {
+            console.error("Activity logging failed:", err);
+        }
+    }
+}
+
+export const chatService = new ChatService();

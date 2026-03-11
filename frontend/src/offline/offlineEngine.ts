@@ -158,10 +158,10 @@ export async function buildOfflineChatResponse(message: string, sessionId: strin
         moodCategory === 'Anxious' || moodCategory === 'Stressed'
             ? 'I hear a lot of pressure in what you shared.'
             : moodCategory === 'Sad' || moodCategory === 'Depressed'
-              ? 'That sounds really heavy, and I am here with you.'
-              : moodCategory === 'Angry'
-                ? 'It makes sense to feel this intensity right now.'
-                : 'Thanks for sharing that with me.';
+                ? 'That sounds really heavy, and I am here with you.'
+                : moodCategory === 'Angry'
+                    ? 'It makes sense to feel this intensity right now.'
+                    : 'Thanks for sharing that with me.';
 
     const topicHint = topics[0] && topics[0] !== 'general' ? ` I also hear this may involve ${topics[0]}.` : '';
 
@@ -214,7 +214,7 @@ export async function syncOfflineQueue(apiClient: any) {
     for (const item of queue) {
         try {
             if (item.type === 'chat') {
-                await apiClient.post('/ai/chat', item.payload, { timeout: 6000 });
+                await apiClient.post('/api/chat', item.payload, { timeout: 15000 });
             } else if (item.type === 'session-mood') {
                 await apiClient.post('/ai/log-session-mood', item.payload, { timeout: 6000 });
             }
