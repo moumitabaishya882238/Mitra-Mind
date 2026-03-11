@@ -4,8 +4,8 @@ import { NativeModules, Platform } from 'react-native';
 // Keep this port in sync with backend/.env PORT.
 const API_PORT = 5000;
 
-// TODO: Replace with your actual production backend URL
-const PROD_URL = 'https://mitra-mind-production.up.railway.app'; 
+// Production backend URL deployed on Render
+const PROD_URL = 'https://mitra-mind.onrender.com'; 
 
 function resolveDevHost(): string {
     if (!__DEV__) return PROD_URL;
