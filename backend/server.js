@@ -63,6 +63,7 @@ app.use('/community', require('./routes/community'));
 app.use('/upload', require('./routes/upload'));
 app.use('/', require('./routes/listeners'));
 app.use('/support', require('./routes/support'));
+app.use('/landing', require('./routes/landingForms'));
 
 // Root Endpoint
 app.get('/', (req, res) => {

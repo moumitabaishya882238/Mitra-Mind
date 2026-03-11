@@ -3,6 +3,11 @@
     "title": "Settings",
     "theme_subtitle": "Choose app theme",
     "language_subtitle": "Choose app language",
+    "support_subtitle": "Support and feedback",
+    "feedback_label": "Feedback",
+    "feedback_hint": "Open the MitraMind feedback page",
+    "feedback_error_title": "Unable to open feedback page",
+    "feedback_error_message": "Please try again in a moment.",
     "active": "Active",
     "tap": "Tap"
   },

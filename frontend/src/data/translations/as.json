@@ -3,6 +3,11 @@
         "title": "ছেটিংছ",
         "theme_subtitle": "এপৰ থিম বাছনি কৰক",
         "language_subtitle": "এপৰ ভাষা বাছনি কৰক",
+        "support_subtitle": "সহায় আৰু মতামত",
+        "feedback_label": "মতামত",
+        "feedback_hint": "MitraMind মতামত পৃষ্ঠা খোলক",
+        "feedback_error_title": "মতামত পৃষ্ঠা খোলিব পৰা নগ'ল",
+        "feedback_error_message": "অনুগ্ৰহ কৰি অলপ পিছত আকৌ চেষ্টা কৰক।",
         "active": "সক্ৰিয়",
         "tap": "টিপক"
     },

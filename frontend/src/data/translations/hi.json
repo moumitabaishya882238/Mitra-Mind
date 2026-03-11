@@ -3,6 +3,11 @@
         "title": "सेटिंग्स",
         "theme_subtitle": "ऐप थीम चुनें",
         "language_subtitle": "ऐप की भाषा चुनें",
+        "support_subtitle": "सहायता और फ़ीडबैक",
+        "feedback_label": "फ़ीडबैक",
+        "feedback_hint": "मित्रामाइंड फ़ीडबैक पेज खोलें",
+        "feedback_error_title": "फ़ीडबैक पेज नहीं खुल सका",
+        "feedback_error_message": "कृपया थोड़ी देर बाद फिर से प्रयास करें।",
         "active": "सक्रिय",
         "tap": "चुनें"
     },

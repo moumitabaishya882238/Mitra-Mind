@@ -1,5 +1,17 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, StatusBar, Pressable, ScrollView } from 'react-native';
+import {
+    View,
+    Text,
+    StyleSheet,
+    SafeAreaView,
+    StatusBar,
+    Pressable,
+    ScrollView,
+    Alert,
+    Linking,
+    NativeModules,
+    Platform,
+} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -14,6 +26,21 @@ const LANGUAGES = [
 
 const LANGUAGE_KEY = 'user-language';
 
+function resolveLandingHost(): string {
+    const scriptURL: string | undefined = NativeModules?.SourceCode?.scriptURL;
+    if (scriptURL) {
+        const match = scriptURL.match(/^https?:\/\/([^/:]+)(?::\d+)?\//i);
+        if (match?.[1]) {
+            return match[1];
+        }
+    }
+
+    if (Platform.OS === 'android') return '10.0.2.2';
+    return 'localhost';
+}
+
+const LANDING_FEEDBACK_URL = `http://${resolveLandingHost()}:3000/feedback`;
+
 export default function SettingsScreen() {
     const { theme, themeName, setThemeName } = useAppTheme();
     const { t, i18n } = useTranslation();
@@ -21,6 +48,14 @@ export default function SettingsScreen() {
     const changeLanguage = async (code: string) => {
         await i18n.changeLanguage(code);
         await AsyncStorage.setItem(LANGUAGE_KEY, code);
+    };
+
+    const openFeedbackPage = async () => {
+        try {
+            await Linking.openURL(LANDING_FEEDBACK_URL);
+        } catch {
+            Alert.alert(t('settings.feedback_error_title'), t('settings.feedback_error_message'));
+        }
     };
 
     return (
@@ -109,6 +144,28 @@ export default function SettingsScreen() {
                                 </Pressable>
                             );
                         })}
+                    </View>
+
+                    <Text style={[styles.subtitle, { color: theme.colors.textSecondary, marginTop: 25 }]}>
+                        {t('settings.support_subtitle')}
+                    </Text>
+                    <View style={styles.listContainer}>
+                        <Pressable
+                            style={[
+                                styles.itemRow,
+                                {
+                                    backgroundColor: 'rgba(255,255,255,0.06)',
+                                    borderColor: theme.colors.borderSoft,
+                                },
+                            ]}
+                            onPress={openFeedbackPage}
+                        >
+                            <View style={styles.langInfo}>
+                                <Text style={[styles.itemLabel, { color: theme.colors.textPrimary }]}>{t('settings.feedback_label')}</Text>
+                                <Text style={[styles.itemSubLabel, { color: theme.colors.textSecondary }]}>{t('settings.feedback_hint')}</Text>
+                            </View>
+                            <Text style={[styles.itemState, { color: theme.colors.textSecondary }]}>{t('settings.tap')}</Text>
+                        </Pressable>
                     </View>
                 </ScrollView>
             </SafeAreaView>
